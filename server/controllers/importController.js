@@ -19,12 +19,14 @@ const normalizeRow = (r, idx) => {
   return {
     rowIndex: idx + 2,
     sno: get('s.no', 'sno', 's no', 'sl no', 'serial'),
-    sportsPlaceName: get('sports place name', 'sports place', 'place name', 'name'),
+    sportsPlaceName: get('facility name', 'sports place name', 'sports place', 'place name', 'name'),
     district: get('district'),
-    place: get('place', 'area', 'location', 'address'),
-    phone: get('contact number', 'contact no', 'phone', 'mobile', 'contact'),
+    place: get('address', 'place', 'area', 'location'),
+    phone: get('phone', 'contact number', 'contact no', 'mobile', 'contact'),
     category: get('category', 'type', 'sport'),
     contactAvailability: get('contact available', 'contact availability', 'available') || 'Yes',
+    googleMapsLink: get('maps link', 'google maps link', 'google maps', 'map link'),
+    sourceField: get('source', 'origin file'),
   };
 };
 
@@ -142,6 +144,8 @@ const importLeads = async (req, res) => {
           sno: row.sno || '',
           category: row.category || 'other',
           contactAvailability: row.contactAvailability || 'Yes',
+          googleMapsLink: row.googleMapsLink || '',
+          sourceField: row.sourceField || '',
           source: 'excel_import',
           importBatch: batchId,
         };

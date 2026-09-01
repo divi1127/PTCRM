@@ -68,10 +68,15 @@ export default function Layout({ children, title, hideNavbar = false }) {
           <Navbar title={title} toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
         )}
         <main
-          className={`fade-in main-content-pad ${hideNavbar ? 'p-0' : 'p-6'}`}
-          style={{ flex: 1, maxWidth: '100%', overflowX: 'hidden' }}
+          className="fade-in main-content-pad"
+          style={{
+            flex: 1,
+            maxWidth: '100%',
+            overflowX: 'hidden',
+            padding: hideNavbar ? 0 : undefined,
+          }}
         >
-          {children}
+          {typeof children === 'function' ? children({ toggleSidebar }) : children}
         </main>
       </div>
 

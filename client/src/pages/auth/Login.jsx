@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../api/axios';
-import { Zap, Mail, Lock, Eye, EyeOff, AlertCircle, Camera, RefreshCw } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle, Camera, CheckCircle } from 'lucide-react';
+import logo from '../../assets/logo.jpeg';
 
 export default function Login() {
   const { login } = useAuth();
@@ -11,93 +12,71 @@ export default function Login() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [facePhoto, setFacePhoto] = useState('');
-  const [cameraOn, setCameraOn] = useState(false);
+  const [attendanceStatus, setAttendanceStatus] = useState(''); // 'capturing' | 'done' | 'skipped'
   const videoRef = useRef(null);
   const streamRef = useRef(null);
-  const canvasRef = useRef(null);
 
-  const demoUsers = [
-    { label: 'Admin', email: 'admin@playtime.com', password: 'admin123', color: '#8b5cf6' },
-    { label: 'Employee', email: 'ravi@playtime.com', password: 'employee123', color: '#10b981' },
-  ];
+  /* ── Auto-capture selfie + GPS then post attendance ─────── */
+  const captureAndCheckIn = async () => {
+    setAttendanceStatus('capturing');
+    let selfie = '';
+    let location = {};
 
-  const startCamera = async () => {
+    // 1. Try camera selfie
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
       streamRef.current = stream;
-      setCameraOn(true);
-      setFacePhoto('');
-    } catch {
-      setError('Camera access denied. Please allow camera or use email/password only.');
-    }
-  };
-
-  useEffect(() => {
-    if (cameraOn && videoRef.current && streamRef.current) {
-      videoRef.current.srcObject = streamRef.current;
-      videoRef.current.play().catch(() => {});
-    }
-  }, [cameraOn]);
-
-  const stopCamera = () => {
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
-    setCameraOn(false);
-  };
-
-  const capturePhoto = () => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    setFacePhoto(canvas.toDataURL('image/jpeg', 0.7));
-    stopCamera();
-  };
-
-  const autoCheckIn = useCallback(async (token, photo) => {
-    if (!photo) return;
-    try {
-      let location = null;
-      if (navigator.geolocation) {
-        await new Promise(resolve => {
-          navigator.geolocation.getCurrentPosition(
-            pos => { location = { lat: pos.coords.latitude, lng: pos.coords.longitude }; resolve(); },
-            () => resolve(), { timeout: 4000 }
-          );
-        });
+      // Give video element a moment to render
+      await new Promise(r => setTimeout(r, 800));
+      const video = videoRef.current;
+      if (video) {
+        video.srcObject = stream;
+        await video.play().catch(() => {});
+        await new Promise(r => setTimeout(r, 600));
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 320;
+        canvas.height = video.videoHeight || 240;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        selfie = canvas.toDataURL('image/jpeg', 0.6);
       }
-      await API.post('/attendance/check-in', { location, selfie: photo, notes: 'Face login auto check-in' }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      stream.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
     } catch {
+      // Camera not available — proceed without selfie
+    }
+
+    // 2. Try GPS
+    try {
+      const pos = await new Promise((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 6000 })
+      );
+      location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    } catch {
+      // GPS not available — proceed without location
+    }
+
+    // 3. Post check-in
+    try {
+      await API.post('/attendance/check-in', { selfie, location });
+    } catch (err) {
+      console.error('Attendance failed:', err);
       // Already checked in or error — silently ignore
     }
-  }, []);
+
+    setAttendanceStatus('done');
+    // Clear status after 3 seconds
+    setTimeout(() => setAttendanceStatus(''), 3000);
+  };
 
   const doLogin = async (email, password) => {
     setError(''); setLoading(true);
     try {
-      // If face captured, try face login first
-      if (facePhoto) {
-        try {
-          const { data } = await API.post('/auth/face-login', { facePhoto });
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify(data));
-          if (facePhoto) await autoCheckIn(data.token, facePhoto);
-          if (data.role === 'admin') navigate('/admin/dashboard');
-          else navigate('/employee/dashboard');
-          return;
-        } catch {
-          // Face login failed, fallback to email/password
-        }
-      }
       const user = await login(email, password);
-      if (facePhoto) await autoCheckIn(localStorage.getItem('token'), facePhoto);
-      if (user.role === 'admin') navigate('/admin/dashboard');
+      // Auto-capture attendance for employees
+      if (user.role?.toLowerCase() !== 'admin') {
+        await captureAndCheckIn(); // Wait for capture to finish before redirecting
+      }
+      if (user.role?.toLowerCase() === 'admin') navigate('/admin/dashboard');
       else navigate('/employee/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Check credentials.');
@@ -107,6 +86,11 @@ export default function Login() {
   const handleLogin = (e) => { e.preventDefault(); doLogin(form.email, form.password); };
   const quickLogin = (email, password) => { setForm({ email, password }); doLogin(email, password); };
 
+  const demoUsers = [
+    { label: 'Admin', email: 'admin@playtime.com', password: 'admin123', color: '#8b5cf6' },
+    { label: 'Employee', email: 'ravi@playtime.com', password: 'employee123', color: '#10b981' },
+  ];
+
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -115,23 +99,22 @@ export default function Login() {
     }}>
       <div style={{ position: 'fixed', top: '10%', left: '5%', width: 300, height: 300, borderRadius: '50%', background: 'rgba(99,102,241,0.06)', filter: 'blur(60px)' }} />
       <div style={{ position: 'fixed', bottom: '10%', right: '5%', width: 400, height: 400, borderRadius: '50%', background: 'rgba(16,185,129,0.05)', filter: 'blur(80px)' }} />
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+      {/* Hidden video element for silent selfie capture */}
+      <video ref={videoRef} autoPlay playsInline muted style={{ position: 'fixed', opacity: 0, pointerEvents: 'none', width: 1, height: 1, top: 0, left: 0 }} />
 
       <div style={{ width: '100%', maxWidth: 440, position: 'relative', zIndex: 1 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: 18,
-            background: 'linear-gradient(135deg, #6366f1, #10b981)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px', boxShadow: '0 0 40px rgba(99,102,241,0.4)'
-          }}><Zap size={32} color="white" /></div>
+          <div style={{ margin: '0 auto 16px', width: 80, height: 80, borderRadius: 20, overflow: 'hidden', boxShadow: '0 0 40px rgba(99,102,241,0.35)', border: '2px solid rgba(255,255,255,0.1)' }}>
+            <img src={logo} alt="Play Time CRM" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
           <h1 style={{ fontFamily: 'Outfit', fontSize: 28, fontWeight: 800, color: '#f1f5f9' }}>Play Time CRM</h1>
-          <p style={{ color: '#64748b', fontSize: 14, marginTop: 4 }}>Sports Turf & Booking Platform</p>
+          <p style={{ color: '#64748b', fontSize: 14, marginTop: 4 }}>Sports Turf &amp; Booking Platform</p>
         </div>
 
         <div className="glass" style={{ padding: 32 }}>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Welcome back 👋</h2>
-          <p style={{ color: '#64748b', fontSize: 13, marginBottom: 24 }}>Sign in with email/password or face capture</p>
+          <p style={{ color: '#64748b', fontSize: 13, marginBottom: 24 }}>Sign in — attendance captured automatically</p>
 
           {error && (
             <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
@@ -140,33 +123,45 @@ export default function Login() {
             </div>
           )}
 
-          {/* Face capture section */}
-          <div style={{ marginBottom: 20 }}>
-            <label className="form-label">Face ID (optional — auto marks attendance)</label>
-            {cameraOn ? (
-              <div style={{ textAlign: 'center' }}>
-                <video ref={videoRef} autoPlay playsInline style={{ width: '100%', borderRadius: 12, border: '1px solid var(--border)', maxHeight: 200, objectFit: 'cover' }} />
-                <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'center' }}>
-                  <button type="button" className="btn-primary" style={{ padding: '8px 18px', fontSize: 13 }} onClick={capturePhoto}>
-                    <Camera size={14} /> Capture
-                  </button>
-                  <button type="button" className="btn-secondary" style={{ padding: '8px 18px', fontSize: 13 }} onClick={stopCamera}>Cancel</button>
-                </div>
+          {/* Attendance status Full Screen Overlay for visible capture */}
+          {attendanceStatus === 'capturing' && (
+            <div style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(15,15,26,0.95)', zIndex: 9999,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              padding: 24, backdropFilter: 'blur(10px)'
+            }}>
+              <div style={{
+                position: 'relative', width: 280, height: 280, borderRadius: '50%',
+                overflow: 'hidden', border: '4px solid var(--primary)',
+                boxShadow: '0 0 40px rgba(173,255,47,0.3)', marginBottom: 24
+              }}>
+                <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle, transparent 60%, rgba(0,0,0,0.4) 100%)' }} />
               </div>
-            ) : facePhoto ? (
-              <div style={{ textAlign: 'center' }}>
-                <img src={facePhoto} alt="face" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '50%', border: '2px solid #10b981' }} />
-                <div style={{ marginTop: 8, fontSize: 12, color: '#10b981', fontWeight: 600 }}>✓ Face captured</div>
-                <button type="button" onClick={() => { setFacePhoto(''); startCamera(); }} style={{ marginTop: 6, background: 'none', border: 'none', color: '#64748b', fontSize: 12, cursor: 'pointer' }}>
-                  <RefreshCw size={12} /> Retake
-                </button>
+              <h3 style={{ color: 'white', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Verifying Identity...</h3>
+              <p style={{ color: '#64748b', fontSize: 14, textAlign: 'center' }}>Capturing selfie and GPS for attendance tracking.</p>
+              <div className="spinner" style={{ marginTop: 24, width: 32, height: 32, borderColor: 'var(--primary)' }} />
+            </div>
+          )}
+
+          {attendanceStatus === 'done' && (
+            <div style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(15,15,26,0.95)', zIndex: 9999,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <div style={{
+                width: 80, height: 80, borderRadius: '50%', background: 'rgba(16,185,129,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16
+              }}>
+                <CheckCircle size={40} color="#10b981" />
               </div>
-            ) : (
-              <button type="button" onClick={startCamera} className="btn-secondary" style={{ width: '100%', justifyContent: 'center', padding: '10px', fontSize: 13 }}>
-                <Camera size={15} /> Open Camera for Face Login
-              </button>
-            )}
-          </div>
+              <h3 style={{ color: 'white', fontSize: 22, fontWeight: 700 }}>Attendance Marked Successfully!</h3>
+              <p style={{ color: '#64748b', fontSize: 14 }}>Redirecting to dashboard...</p>
+            </div>
+          )}
+
 
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: 16 }}>
@@ -177,7 +172,7 @@ export default function Login() {
                   value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
               </div>
             </div>
-            <div style={{ marginBottom: 24 }}>
+            <div style={{ marginBottom: 16 }}>
               <label className="form-label">Password</label>
               <div style={{ position: 'relative' }}>
                 <Lock size={16} color="#64748b" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
@@ -188,8 +183,15 @@ export default function Login() {
                 </button>
               </div>
             </div>
+
+            {/* Attendance info note */}
+            <div style={{ background: 'rgba(173,255,47,0.04)', border: '1px solid rgba(173,255,47,0.1)', borderRadius: 8, padding: '8px 12px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Camera size={13} color="#adff2f" />
+              <span style={{ fontSize: 12, color: '#adff2f' }}>Face &amp; GPS captured automatically on login (employees)</span>
+            </div>
+
             <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '13px 24px' }} disabled={loading}>
-              {loading ? 'Signing in...' : facePhoto ? '🔓 Sign In + Mark Attendance' : 'Sign In'}
+              {loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
 
@@ -198,8 +200,8 @@ export default function Login() {
           </p>
         </div>
 
-        <div className="glass" style={{ marginTop: 20, padding: 20 }}>
-          <p style={{ fontSize: 12, color: '#64748b', textAlign: 'center', marginBottom: 14, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>⚡ Quick Demo Access</p>
+        <div className="glass" style={{ marginTop: 16, padding: 16 }}>
+          <p style={{ fontSize: 12, color: '#64748b', textAlign: 'center', marginBottom: 12, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>⚡ Quick Demo Access</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {demoUsers.map(u => (
               <button key={u.label} onClick={() => quickLogin(u.email, u.password)}

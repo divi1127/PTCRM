@@ -1,53 +1,99 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
 import { useAuth } from '../../context/AuthContext';
-import { Users, Plus, Edit2, Trash2, CheckCircle, UploadCloud, X } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, CheckCircle, UploadCloud, X, ExternalLink } from 'lucide-react';
 
-const EMPTY_FORM = { employeeId: '', month: new Date().getMonth() + 1, year: new Date().getFullYear(), value: 10, district: '', selectedPlaces: [] };
+const EMPTY_FORM = {
+  employeeId: '', month: new Date().getMonth() + 1,
+  year: new Date().getFullYear(), value: 10,
+  district: '', selectedPlaces: []
+};
+
+/* Build a map of { _id → '11110001'-style rNo } from all locations */
+const buildRnoMap = (locations) => {
+  const map = {};
+  locations.forEach((item, idx) => {
+    map[item._id] = String(11110001 + idx);
+  });
+  return map;
+};
 
 export default function AdminTargets() {
   const { user } = useAuth();
-  const [targets, setTargets] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [districts, setDistricts] = useState([]);
+  const navigate = useNavigate();
+  const [targets, setTargets]           = useState([]);
+  const [employees, setEmployees]       = useState([]);
+  const [districts, setDistricts]       = useState([]);
   const [districtPlaces, setDistrictPlaces] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [editTarget, setEditTarget] = useState(null);
-  const [showDetail, setShowDetail] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [loading, setLoading]           = useState(true);
+  const [showModal, setShowModal]       = useState(false);
+  const [editTarget, setEditTarget]     = useState(null);
+  const [showDetail, setShowDetail]     = useState(null);
+  const [form, setForm]                 = useState(EMPTY_FORM);
   const [loadingPlaces, setLoadingPlaces] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading]       = useState(false);
+  /* All-locations map for rNo computation */
+  const [rnoMap, setRnoMap]             = useState({});
+  const [rnoMapLoaded, setRnoMapLoaded] = useState(false);
 
   useEffect(() => {
     fetchTargets();
     if (user?.role === 'admin') { fetchEmployees(); fetchDistricts(); }
   }, [user]);
 
+  /* Fetch all locations once to build rNo map */
+  const ensureRnoMap = useCallback(async () => {
+    if (rnoMapLoaded) return rnoMap;
+    try {
+      const { data } = await API.get('/leads/locations');
+      const map = buildRnoMap(data || []);
+      setRnoMap(map);
+      setRnoMapLoaded(true);
+      return map;
+    } catch {
+      setRnoMapLoaded(true);
+      return {};
+    }
+  }, [rnoMapLoaded, rnoMap]);
+
   const fetchTargets = async () => {
     setLoading(true);
-    try { const { data } = await API.get('/reports/targets'); setTargets(data); }
-    catch (err) { console.error(err); }
+    try {
+      /* Use /targets so backend applies employee filter for non-admins */
+      const { data } = await API.get('/targets');
+      setTargets(Array.isArray(data) ? data : []);
+    } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
 
   const fetchEmployees = async () => {
-    try { const { data } = await API.get('/users?role=employee'); setEmployees(data); } catch { }
+    try { const { data } = await API.get('/users?role=employee'); setEmployees(data); } catch {}
   };
 
   const fetchDistricts = async () => {
-    try { const { data } = await API.get('/leads/districts'); setDistricts(data); } catch { }
+    try { const { data } = await API.get('/leads/districts'); setDistricts(data); } catch {}
   };
 
   const fetchPlacesByDistrict = async (district) => {
     if (!district) { setDistrictPlaces([]); return; }
     setLoadingPlaces(true);
     try {
+      /* Ensure map is built */
+      const map = await ensureRnoMap();
       const { data } = await API.get(`/leads/places/${encodeURIComponent(district)}`);
-      setDistrictPlaces(data);
-      // Auto-select up to form.value places
-      const autoSelected = data.slice(0, Number(form.value)).map(p => ({ _id: p._id, placeName: p.sportsPlaceName || p.name, rNo: p.sno || '', address: p.location?.address || '' }));
+      /* Attach computed rNo to each place */
+      const enriched = (data || []).map(p => ({ ...p, computedRno: map[p._id] || p.sno || '' }));
+      setDistrictPlaces(enriched);
+      /* Auto-select up to form.value places */
+      const autoSelected = enriched.slice(0, Number(form.value)).map(p => ({
+        _id:       p._id,
+        placeName: p.sportsPlaceName || p.name,
+        rNo:       p.computedRno,
+        district:  district,
+        address:   p.location?.address || ''
+      }));
       setForm(f => ({ ...f, district, selectedPlaces: autoSelected }));
     } catch { setDistrictPlaces([]); }
     finally { setLoadingPlaces(false); }
@@ -57,27 +103,59 @@ export default function AdminTargets() {
     setForm(f => {
       const exists = f.selectedPlaces.find(p => p._id?.toString() === place._id?.toString());
       if (exists) return { ...f, selectedPlaces: f.selectedPlaces.filter(p => p._id?.toString() !== place._id?.toString()) };
-      const newPlace = { _id: place._id, placeName: place.sportsPlaceName || place.name, rNo: place.sno || '', address: place.location?.address || '' };
+      const newPlace = {
+        _id:       place._id,
+        placeName: place.sportsPlaceName || place.name,
+        rNo:       place.computedRno || '',
+        district:  form.district,
+        address:   place.location?.address || ''
+      };
       return { ...f, selectedPlaces: [...f.selectedPlaces, newPlace] };
     });
   };
 
-  const openCreate = () => { setEditTarget(null); setForm(EMPTY_FORM); setDistrictPlaces([]); setShowModal(true); };
+  const openCreate = async () => {
+    setEditTarget(null); setForm(EMPTY_FORM); setDistrictPlaces([]);
+    setShowModal(true);
+    /* Pre-load rNo map in background */
+    ensureRnoMap();
+  };
 
   const openEdit = (t) => {
     setEditTarget(t);
-    setForm({ employeeId: t.employee?._id || '', month: t.month, year: t.year, value: t.value, district: '', selectedPlaces: t.places.map(p => ({ _id: p._id, placeName: p.placeName, rNo: p.rNo || '', address: p.address || '' })) });
+    setForm({
+      employeeId: t.employee?._id || '',
+      month: t.month, year: t.year, value: t.value,
+      district: '',
+      selectedPlaces: t.places.map(p => ({
+        _id: p._id, placeName: p.placeName,
+        rNo: p.rNo || '', district: p.district || '',
+        address: p.address || ''
+      }))
+    });
     setDistrictPlaces([]);
     setShowModal(true);
+    ensureRnoMap();
   };
 
   const handleSubmit = async () => {
     try {
-      const placeItems = form.selectedPlaces.map(p => ({ placeName: p.placeName, address: p.address, rNo: p.rNo }));
+      const placeItems = form.selectedPlaces.map(p => ({
+        placeName: p.placeName, address: p.address,
+        rNo: p.rNo, district: p.district
+      }));
       if (editTarget) {
-        await API.put(`/targets/${editTarget._id}`, { employeeId: form.employeeId, month: Number(form.month), year: Number(form.year), value: Number(form.value), placeItems });
+        await API.put(`/targets/${editTarget._id}`, {
+          employeeId: form.employeeId, month: Number(form.month),
+          year: Number(form.year), value: Number(form.value),
+          district: form.district, placeItems
+        });
       } else {
-        await API.post('/targets', { employeeId: form.employeeId, month: Number(form.month), year: Number(form.year), value: Number(form.value), placeItems });
+        await API.post('/targets', {
+          employeeId: form.employeeId, month: Number(form.month),
+          year: Number(form.year), value: Number(form.value),
+          district: form.district, placeItems
+        });
       }
       setShowModal(false);
       fetchTargets();
@@ -94,7 +172,9 @@ export default function AdminTargets() {
     try {
       await API.patch(`/targets/${targetId}/place/${placeId}`, { status });
       fetchTargets();
-      setShowDetail(prev => prev ? { ...prev, places: prev.places.map(p => p._id === placeId ? { ...p, status } : p) } : null);
+      setShowDetail(prev => prev
+        ? { ...prev, places: prev.places.map(p => p._id === placeId ? { ...p, status } : p) }
+        : null);
     } catch (err) { console.error(err); }
   };
 
@@ -103,10 +183,17 @@ export default function AdminTargets() {
     setUploading(true);
     try {
       const body = new FormData(); body.append('photo', file);
-      await API.post(`/targets/${targetId}/place/${placeId}/photo`, body, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await API.post(`/targets/${targetId}/place/${placeId}/photo`, body,
+        { headers: { 'Content-Type': 'multipart/form-data' } });
       fetchTargets();
     } catch (err) { alert(err.response?.data?.message || 'Upload failed'); }
     finally { setUploading(false); }
+  };
+
+  /* Navigate to DataModule with rNo pre-filled in search */
+  const openInDataModule = (rNo) => {
+    if (!rNo) return;
+    navigate(`/admin/data-module?search=${encodeURIComponent(rNo)}`);
   };
 
   return (
@@ -117,7 +204,7 @@ export default function AdminTargets() {
           <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Assign monthly place targets and track progress</p>
         </div>
         <div className="page-header-actions">
-           {user?.role === 'admin' && <button className="btn-primary" onClick={openCreate}><Plus size={18} /> Assign New Target</button>}
+          {user?.role === 'admin' && <button className="btn-primary" onClick={openCreate}><Plus size={18} /> Assign New Target</button>}
         </div>
       </div>
 
@@ -147,40 +234,64 @@ export default function AdminTargets() {
                 </div>
               )}
             </div>
+
             <div className="grid-cols-3" style={{ gap: 10, marginBottom: 20 }}>
               <div style={{ padding: 12, background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>Target</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>Monthly Target</div>
                 <div style={{ fontSize: 16, fontWeight: 800 }}>{t.value}</div>
+                <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Done: {t.achieved || 0}</div>
               </div>
               <div style={{ padding: 12, background: 'rgba(56,189,248,0.04)', borderRadius: 12, border: '1px solid rgba(56,189,248,0.1)' }}>
-                <div style={{ fontSize: 10, color: '#38bdf8', marginBottom: 2 }}>Week</div>
+                <div style={{ fontSize: 10, color: '#38bdf8', marginBottom: 2 }}>Weekly Target</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#38bdf8' }}>{t.weeklyTarget || Math.ceil(t.value / 4)}</div>
+                <div style={{ fontSize: 9, color: '#38bdf8' }}>Avg: {t.dailyAvg || (t.weeklyTarget / 6).toFixed(1)}/day</div>
               </div>
               <div style={{ padding: 12, background: 'rgba(173,255,47,0.03)', borderRadius: 12, border: '1px solid rgba(173,255,47,0.1)' }}>
-                <div style={{ fontSize: 10, color: 'var(--primary)', marginBottom: 2 }}>Done</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--primary)' }}>{t.achieved || 0}</div>
+                <div style={{ fontSize: 10, color: 'var(--primary)', marginBottom: 2 }}>Week Done</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--primary)' }}>{t.weeklyAchieved || 0}</div>
+                <div style={{ fontSize: 9, color: 'var(--primary)' }}>Left: {Math.max(0, (t.weeklyTarget || 0) - (t.weeklyAchieved || 0))}</div>
               </div>
             </div>
-            <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-              <span style={{ color: 'var(--text-muted)' }}>Progress</span>
-              <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{t.progress ?? 0}%</span>
+
+            {/* Monthly progress */}
+            <div style={{ marginBottom: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+                <span style={{ color: 'var(--text-muted)' }}>Monthly Progress</span>
+                <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{t.progress ?? 0}%</span>
+              </div>
+              <div style={{ height: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.min(t.progress || 0, 100)}%`, background: 'var(--primary)', boxShadow: '0 0 10px var(--glow)' }} />
+              </div>
             </div>
-            <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden', marginBottom: 16 }}>
-              <div style={{ height: '100%', width: `${Math.min(t.progress || 0, 100)}%`, background: 'var(--primary)', boxShadow: '0 0 10px var(--glow)' }} />
+
+            {/* Weekly progress */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+                <span style={{ color: 'var(--text-muted)' }}>Weekly Progress</span>
+                <span style={{ fontWeight: 700, color: '#38bdf8' }}>{t.weeklyProgress ?? 0}%</span>
+              </div>
+              <div style={{ height: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.min(t.weeklyProgress || 0, 100)}%`, background: '#38bdf8' }} />
+              </div>
             </div>
+
             <button onClick={() => setShowDetail(t)} style={{ width: '100%', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 10, padding: '8px', color: '#a5b4fc', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>View Places</button>
           </div>
         ))}
       </div>
 
-      {/* Assign / Edit Modal */}
+      {/* ── Assign / Edit Modal ── */}
       {showModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
-          <div className="modal-window" style={{ maxWidth: 720, width: '100%', padding: 24, maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="modal-overlay" role="presentation">
+          <div className="modal-window" role="dialog" aria-modal="true"
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: 860, width: '100%', padding: 24, maxHeight: '90vh', overflowY: 'auto' }}>
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ fontWeight: 700, fontSize: 18 }}>{editTarget ? 'Edit Target' : 'Assign Monthly Target'}</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+              <h3 style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-primary)' }}>{editTarget ? 'Edit Target' : 'Assign Monthly Target'}</h3>
+              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20} /></button>
             </div>
+
             <div style={{ display: 'grid', gap: 14 }}>
               <div><label className="form-label">Employee</label>
                 <select className="form-input" value={form.employeeId} onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))}>
@@ -188,35 +299,46 @@ export default function AdminTargets() {
                   {employees.map(emp => <option key={emp._id} value={emp._id}>{emp.name}</option>)}
                 </select>
               </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 <div><label className="form-label">Month</label><input className="form-input" type="number" min="1" max="12" value={form.month} onChange={e => setForm(f => ({ ...f, month: e.target.value }))} /></div>
                 <div><label className="form-label">Year</label><input className="form-input" type="number" value={form.year} onChange={e => setForm(f => ({ ...f, year: e.target.value }))} /></div>
                 <div><label className="form-label">No. of Places</label><input className="form-input" type="number" min="1" max="100" value={form.value} onChange={e => setForm(f => ({ ...f, value: e.target.value }))} /></div>
               </div>
 
-              <div><label className="form-label">Select District (auto-loads places)</label>
+              <div><label className="form-label">Select District (auto-loads places with R.No)</label>
                 <select className="form-input" value={form.district} onChange={e => fetchPlacesByDistrict(e.target.value)}>
                   <option value="">-- Select District --</option>
                   {districts.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
 
-              {loadingPlaces && <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Loading places...</div>}
+              {loadingPlaces && (
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> Loading places with R.No...
+                </div>
+              )}
 
               {districtPlaces.length > 0 && (
                 <div>
-                  <label className="form-label">Places in {form.district} — select up to {form.value}</label>
-                  <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 10, padding: 10 }}>
+                  <label className="form-label">Places in {form.district} — select up to {form.value} ({form.selectedPlaces.length} selected)</label>
+                  <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 10, padding: 10 }}>
                     {districtPlaces.map(p => {
                       const selected = form.selectedPlaces.some(sp => sp._id?.toString() === p._id?.toString());
                       return (
-                        <div key={p._id} onClick={() => togglePlace(p)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', borderRadius: 8, cursor: 'pointer', background: selected ? 'rgba(99,102,241,0.15)' : 'transparent', marginBottom: 4 }}>
+                        <div key={p._id} onClick={() => togglePlace(p)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px', borderRadius: 8, cursor: 'pointer', background: selected ? 'rgba(99,102,241,0.15)' : 'transparent', marginBottom: 4, transition: 'background 0.15s' }}>
                           <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${selected ? '#818cf8' : 'var(--border)'}`, background: selected ? '#818cf8' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             {selected && <CheckCircle size={10} color="white" />}
                           </div>
-                          <div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 600 }}>{p.sportsPlaceName || p.name}</div>
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>R.No: {p.sno || '—'} • {p.location?.address || '—'}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 6 }}>
+                              <span style={{ background: 'rgba(173,255,47,0.1)', color: '#adff2f', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
+                                R.No: {p.computedRno || '—'}
+                              </span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.location?.address || '—'}</span>
+                            </div>
                           </div>
                         </div>
                       );
@@ -228,11 +350,16 @@ export default function AdminTargets() {
               {form.selectedPlaces.length > 0 && (
                 <div>
                   <label className="form-label">Selected Places ({form.selectedPlaces.length})</label>
-                  <div style={{ maxHeight: 150, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 10, padding: 8 }}>
+                  <div style={{ maxHeight: 160, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 10, padding: 8 }}>
                     {form.selectedPlaces.map((p, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px', fontSize: 13 }}>
-                        <span><strong>{p.placeName}</strong> {p.rNo && <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>(R.No: {p.rNo})</span>}</span>
-                        <button onClick={() => setForm(f => ({ ...f, selectedPlaces: f.selectedPlaces.filter((_, idx) => idx !== i) }))} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer' }}><X size={13} /></button>
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 6px', fontSize: 13, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                        <span>
+                          <span style={{ background: 'rgba(173,255,47,0.1)', color: '#adff2f', padding: '1px 6px', borderRadius: 4, fontSize: 11, fontWeight: 700, marginRight: 8 }}>{p.rNo}</span>
+                          <strong>{p.placeName}</strong>
+                          {p.district && <span style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 6 }}>({p.district})</span>}
+                        </span>
+                        <button onClick={() => setForm(f => ({ ...f, selectedPlaces: f.selectedPlaces.filter((_, idx) => idx !== i) }))}
+                          style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', flexShrink: 0 }}><X size={13} /></button>
                       </div>
                     ))}
                   </div>
@@ -248,65 +375,117 @@ export default function AdminTargets() {
         </div>
       )}
 
-      {/* Detail Modal */}
+      {/* ── Detail / View Places Modal ── */}
       {showDetail && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowDetail(null)}>
-          <div className="modal-window" style={{ maxWidth: 780, width: '100%', padding: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div className="modal-overlay" role="presentation">
+          <div className="modal-window" style={{ maxWidth: 860, width: '100%', padding: 24, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
               <div>
-                <h3 style={{ marginBottom: 6, fontWeight: 700, fontSize: 18 }}>{showDetail.employee?.name}'s Target</h3>
-                <p style={{ color: 'var(--text-muted)' }}>{showDetail.month}/{showDetail.year} • {showDetail.value} places • Weekly Target: {showDetail.weeklyTarget || Math.ceil(showDetail.value / 4)}</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                  {showDetail.month}/{showDetail.year} &nbsp;•&nbsp; {showDetail.value} places &nbsp;•&nbsp;
+                  Weekly Target: <strong style={{ color: '#38bdf8' }}>{showDetail.weeklyTarget || Math.ceil(showDetail.value / 4)}</strong>
+                  &nbsp;•&nbsp; Daily Avg: <strong style={{ color: '#adff2f' }}>{showDetail.dailyAvg || 0}/day</strong>
+                  &nbsp;•&nbsp; Weekly Done: <strong style={{ color: '#38bdf8' }}>{showDetail.weeklyAchieved || 0}</strong>
+                </p>
+                {/* Progress bars in header */}
+                <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 3 }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Monthly</span>
+                      <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{showDetail.progress ?? 0}%</span>
+                    </div>
+                    <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                      <div style={{ height: '100%', width: `${Math.min(showDetail.progress || 0, 100)}%`, background: 'var(--primary)' }} />
+                    </div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 3 }}>
+                      <span style={{ color: '#38bdf8' }}>Weekly</span>
+                      <span style={{ color: '#38bdf8', fontWeight: 700 }}>{showDetail.weeklyProgress ?? 0}%</span>
+                    </div>
+                    <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2 }}>
+                      <div style={{ height: '100%', width: `${Math.min(showDetail.weeklyProgress || 0, 100)}%`, background: '#38bdf8' }} />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <button onClick={() => setShowDetail(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+              <button onClick={() => setShowDetail(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', flexShrink: 0 }}><X size={20} /></button>
             </div>
+
             <div className="table-wrapper">
               <div style={{ overflowX: 'auto' }}>
-              <table className="data-table">
-                <thead>
-                  <tr><th>R.No</th><th>Place</th><th>District</th><th>Address</th><th>Status</th><th>Photos</th><th>Upload</th></tr>
-                </thead>
-                <tbody>
-                  {(Array.isArray(showDetail?.places) ? showDetail.places : []).length === 0 ? (
+                <table className="data-table">
+                  <thead>
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No places defined.</td>
+                      <th>R.No</th>
+                      <th>Place</th>
+                      <th>District</th>
+                      <th>Address</th>
+                      <th>Status</th>
+                      <th>Photos</th>
+                      <th>Upload</th>
                     </tr>
-                  ) : (
-                    Array.isArray(showDetail?.places) && showDetail.places.map((place) => (
-                      <tr key={place._id}>
-                        <td style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{place.rNo || '—'}</td>
-                        <td style={{ fontWeight: 600 }}>{place.placeName || place.sportsPlaceName || place.name || '—'}</td>
-                        <td style={{ fontSize: 12, color: '#a5b4fc' }}>{showDetail.district || '—'}</td>
-                        <td style={{ fontSize: 12, color: '#94a3b8' }}>{place.address || place.location?.address || '—'}</td>
-                        <td>
-                          <select
-                            className={`form-input ${place.status === 'Completed' ? 'badge-converted' : place.status === 'Follow Up' ? 'badge-interested' : ''}`}
-                            style={{ width: 130, padding: '4px 8px', fontSize: 13 }}
-                            value={place.status}
-                            onChange={(e) => handlePlaceUpdate(showDetail._id, place._id, e.target.value)}
-                          >
-                            <option>Pending</option>
-                            <option>Follow Up</option>
-                            <option>Completed</option>
-                          </select>
-                        </td>
-                        <td>{(place.photos || []).length}</td>
-                        <td>
-                          <label style={{ cursor: 'pointer', color: 'var(--primary)' }}>
-                            <UploadCloud size={16} />
-                            <input
-                              type="file"
-                              style={{ display: 'none' }}
-                              accept="image/*"
-                              onChange={(e) => handleUploadPhoto(showDetail._id, place._id, e.target.files[0])}
-                            />
-                          </label>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-                </div>
+                  </thead>
+                  <tbody>
+                    {(Array.isArray(showDetail?.places) ? showDetail.places : []).length === 0 ? (
+                      <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No places defined.</td></tr>
+                    ) : (
+                      Array.isArray(showDetail?.places) && showDetail.places.map((place) => (
+                        <tr key={place._id}>
+                          {/* Clickable R.No → DataModule */}
+                          <td>
+                            {place.rNo ? (
+                              <button
+                                onClick={() => openInDataModule(place.rNo)}
+                                title={`Open ${place.rNo} in Data Module`}
+                                style={{
+                                  background: 'rgba(173,255,47,0.08)', border: '1px solid rgba(173,255,47,0.2)',
+                                  borderRadius: 6, padding: '3px 8px', cursor: 'pointer',
+                                  color: '#adff2f', fontSize: 12, fontWeight: 700,
+                                  display: 'inline-flex', alignItems: 'center', gap: 4
+                                }}
+                              >
+                                {place.rNo} <ExternalLink size={10} />
+                              </button>
+                            ) : <span style={{ color: '#64748b', fontSize: 12 }}>—</span>}
+                          </td>
+                          <td style={{ fontWeight: 600 }}>{place.placeName || place.sportsPlaceName || place.name || '—'}</td>
+                          <td>
+                            {(place.district || showDetail.district) ? (
+                              <span style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
+                                {place.district || showDetail.district}
+                              </span>
+                            ) : <span style={{ color: '#64748b' }}>—</span>}
+                          </td>
+                          <td style={{ fontSize: 12, color: '#94a3b8', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={place.address || ''}>
+                            {place.address || place.location?.address || '—'}
+                          </td>
+                          <td>
+                            <select
+                              className={`form-input ${place.status === 'Completed' ? 'badge-converted' : place.status === 'Follow Up' ? 'badge-interested' : ''}`}
+                              style={{ width: 120, padding: '4px 8px', fontSize: 12 }}
+                              value={place.status}
+                              onChange={e => handlePlaceUpdate(showDetail._id, place._id, e.target.value)}
+                            >
+                              <option>Pending</option>
+                              <option>Follow Up</option>
+                              <option>Completed</option>
+                            </select>
+                          </td>
+                          <td style={{ fontSize: 12, color: 'var(--text-muted)' }}>{(place.photos || []).length}</td>
+                          <td>
+                            <label style={{ cursor: 'pointer', color: 'var(--primary)' }}>
+                              <UploadCloud size={16} />
+                              <input type="file" style={{ display: 'none' }} accept="image/*"
+                                onChange={e => handleUploadPhoto(showDetail._id, place._id, e.target.files[0])} />
+                            </label>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

@@ -1,9 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  LayoutDashboard, Users, Calendar, Megaphone,
-  MapPin, BarChart2, Settings, LogOut, Trophy, Target, Zap, FileSpreadsheet
+  LayoutDashboard, Users, Calendar,
+  MapPin, BarChart2, Settings, LogOut, Trophy, Target, Zap, FileSpreadsheet, X
 } from 'lucide-react';
+import logo from '../assets/logo.jpeg';
 
 const navItems = {
   admin: [
@@ -40,31 +41,30 @@ export default function Sidebar({ isOpen, sidebarClass, toggleSidebar }) {
   return (
     <aside className={`sidebar ${sidebarClass || (!isOpen ? 'closed' : '')}`}>
       {/* Logo */}
-      <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 12,
-            background: 'var(--primary)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            <Zap size={20} color="black" />
+      <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: '1px solid rgba(255,255,255,0.08)' }}>
+            <img src={logo} alt="Play Time" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
           <div>
-            <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>Play Time</div>
-            <div style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600, letterSpacing: '0.1em' }}>CRM PLATFORM</div>
+            <div style={{ fontFamily: 'Outfit', fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>Play Time</div>
+            <div style={{ fontSize: 10, color: 'var(--primary)', fontWeight: 600, letterSpacing: '0.08em' }}>CRM</div>
           </div>
         </div>
+        <button onClick={toggleSidebar} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4, display: 'flex' }}>
+          <X size={18} />
+        </button>
       </div>
 
       {/* User info */}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
-            width: 36, height: 36, borderRadius: '50%',
+            width: 32, height: 32, borderRadius: '50%',
             background: 'var(--bg-card)',
             border: '1px solid var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 14, fontWeight: 700, color: 'var(--primary)'
+            fontSize: 13, fontWeight: 700, color: 'var(--primary)'
           }}>
             {user?.name?.charAt(0).toUpperCase()}
           </div>

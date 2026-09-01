@@ -1,18 +1,11 @@
 const Target = require('../models/Target');
 const User = require('../models/User');
-const Notification = require('../models/Notification');
 const logActivity = require('../utils/activityLogger');
-
-// Helper to send a notification to an employee
-const sendNotification = async (recipientId, type, title, message, link) => {
-  try {
-    await Notification.create({ recipient: recipientId, type, title, message, link });
-  } catch (e) { console.error('[Notification] Failed to create:', e.message); }
-};
+const { notify, notifyAllAdmins } = require('../utils/notifHelper');
 
 const createTarget = async (req, res) => {
   try {
-    const { employeeId, month, year, value, placeItems } = req.body;
+    const { employeeId, month, year, value, placeItems, district } = req.body;
     if (!employeeId || !month || !year || !value) {
       return res.status(400).json({ message: 'employeeId, month, year and value are required' });
     }
@@ -23,6 +16,8 @@ const createTarget = async (req, res) => {
     const places = Array.isArray(placeItems) ? placeItems.map(item => ({
       placeName: item.placeName || 'Unnamed Place',
       address: item.address || '',
+      rNo: item.rNo || '',
+      district: item.district || district || '',
       status: 'Pending'
     })) : [];
 
@@ -31,6 +26,7 @@ const createTarget = async (req, res) => {
       month,
       year,
       value,
+      district,
       places,
       status: 'Pending'
     });
@@ -39,12 +35,20 @@ const createTarget = async (req, res) => {
 
     // Notify employee
     const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    await sendNotification(
+    await notify(
       employee._id,
       'target_assigned',
       'New Target Assigned',
       `You have been assigned ${value} places for ${monthNames[month-1]} ${year}.`,
       '/employee/targets'
+    );
+
+    // Notify all admins about target assignment
+    await notifyAllAdmins(
+      'target_assigned',
+      '🎯 Target Assigned',
+      `${employee.name} has been assigned ${value} places for ${monthNames[month-1]} ${year}.`,
+      '/admin/targets'
     );
 
     res.status(201).json(target);
@@ -71,12 +75,39 @@ const getTargets = async (req, res) => {
       const followUpPlaces  = target.places.filter(place => place.status === 'Follow Up').length;
       const totalPlaces = target.value || target.places.length || 0;
       const weeklyTarget = totalPlaces > 0 ? Math.ceil(totalPlaces / 4) : 0;
+
+      // Weekly achieved: places completed within the current calendar week (Mon–Sun)
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0=Sun
+      const diffToMon = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() + diffToMon);
+      weekStart.setHours(0, 0, 0, 0);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 7);
+
+      const weeklyAchieved = target.places.filter(p =>
+        p.status === 'Completed' &&
+        p.updatedAt &&
+        new Date(p.updatedAt) >= weekStart &&
+        new Date(p.updatedAt) < weekEnd
+      ).length;
+
+      const weeklyProgress = weeklyTarget > 0
+        ? Math.round((weeklyAchieved / weeklyTarget) * 100)
+        : 0;
+
+      const dailyAvg = weeklyTarget > 0 ? (weeklyTarget / 6).toFixed(1) : 0;
+
       return {
         ...target.toObject(),
         achieved: completedPlaces,
         followUp: followUpPlaces,
         value: totalPlaces,
         weeklyTarget,
+        weeklyAchieved,
+        weeklyProgress,
+        dailyAvg,
         progress: totalPlaces > 0 ? Math.round((completedPlaces / totalPlaces) * 100) : 0,
       };
     });
@@ -141,27 +172,42 @@ const getTargetById = async (req, res) => {
 
 const updateTarget = async (req, res) => {
   try {
-    const { employeeId, month, year, value, placeItems } = req.body;
+    const { employeeId, month, year, value, placeItems, district } = req.body;
     const target = await Target.findById(req.params.id);
     if (!target) return res.status(404).json({ message: 'Target not found' });
     if (employeeId) target.employee = employeeId;
     if (month) target.month = Number(month);
     if (year) target.year = Number(year);
     if (value) target.value = Number(value);
+    if (district) target.district = district;
     if (Array.isArray(placeItems)) {
-      target.places = placeItems.map(item => ({ placeName: item.placeName || 'Unnamed', address: item.address || '', rNo: item.rNo || '', status: 'Pending' }));
+      target.places = placeItems.map(item => ({
+        placeName: item.placeName || 'Unnamed',
+        address: item.address || '',
+        rNo: item.rNo || '',
+        district: item.district || district || target.district || '',
+        status: 'Pending'
+      }));
     }
     await target.save();
 
     // Notify employee about update
     const emp = await User.findById(target.employee).select('name');
     const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    await sendNotification(
+    await notify(
       target.employee,
-      'target_assigned',
+      'target_updated',
       'Target Updated',
       `Your target for ${monthNames[(target.month||1)-1]} ${target.year} has been updated.`,
       '/employee/targets'
+    );
+
+    // Notify all admins about target update
+    await notifyAllAdmins(
+      'target_updated',
+      '🎯 Target Updated',
+      `${emp.name}'s target for ${monthNames[(target.month||1)-1]} ${target.year} has been updated.`,
+      '/admin/targets'
     );
 
     res.json(target);

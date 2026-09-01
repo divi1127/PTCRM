@@ -91,7 +91,7 @@ export default function EmployeeLeads() {
       <div className="page-header">
         <div>
           <h2 style={{ fontSize: 22, fontWeight: 700 }}>My Lead Pipeline</h2>
-          <p style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{total} leads assigned to you</p>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{total} leads assigned to you</p>
         </div>
       </div>
 
@@ -116,14 +116,16 @@ export default function EmployeeLeads() {
         {STATUS_LIST.map((s) => {
           const count = leads.filter(l => matchStatusFilter(l, s)).length;
           const col = statusColors[s] || {};
+          const isActive = filterStatus === s;
           return (
             <button key={s}
-              onClick={() => { setFilterStatus(filterStatus === s ? '' : s); setPage(1); }}
+              onClick={() => { setFilterStatus(isActive ? '' : s); setPage(1); }}
               style={{
-                background: filterStatus === s ? col.bg : 'rgba(255,255,255,0.04)',
-                color: filterStatus === s ? col.color : '#64748b',
-                border: `1px solid ${filterStatus === s ? col.color + '40' : 'rgba(255,255,255,0.08)'}`,
-                borderRadius: 20, padding: '5px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                background: isActive ? col.bg : 'var(--bg-surface)',
+                color: isActive ? col.color : 'var(--text-muted)',
+                border: `1px solid ${isActive ? (col.color + '40') : 'var(--border)'}`,
+                borderRadius: 20, padding: '0 14px', height: 28, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, whiteSpace: 'nowrap',
               }}>
               {s} ({count})
             </button>
@@ -138,21 +140,21 @@ export default function EmployeeLeads() {
         ) : (
           <div>
             <table className="data-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Sports Place</th>
-                  <th>District</th>
-                  <th>Contact</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
+<thead>
+                 <tr>
+                   <th style={{ maxWidth: 40 }}>#</th>
+                   <th style={{ maxWidth: 140 }}>Sports Place</th>
+                   <th style={{ maxWidth: 100 }}>District</th>
+                   <th style={{ maxWidth: 110 }}>Contact</th>
+                   <th style={{ maxWidth: 90 }}>Status</th>
+                   <th style={{ maxWidth: 80 }}>Actions</th>
+                 </tr>
+               </thead>
               <tbody>
                 {leads.length === 0 ? (
                   <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>No leads assigned</td></tr>
                 ) : leads.map((lead, i) => {
-                  const sc = statusColors[lead.status] || statusColors['New'];
+                  const sc = statusColors[lead.status] || statusColors['New Lead'];
                   return (
                     <tr key={lead._id}>
                       <td style={{ color: '#475569', fontSize: 12 }}>{(page - 1) * PAGE_SIZE + i + 1}</td>
@@ -164,7 +166,7 @@ export default function EmployeeLeads() {
                       </td>
                       <td>
                         {lead.district ? (
-                          <span style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 20, padding: '0 8px', borderRadius: 6, background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', fontSize: 12, fontWeight: 600, lineHeight: 1, whiteSpace: 'nowrap' }}>
                             {lead.district}
                           </span>
                         ) : (
@@ -183,7 +185,7 @@ export default function EmployeeLeads() {
                         )}
                       </td>
                       <td>
-                        <span style={{ background: sc.bg, color: sc.color, padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 22, padding: '0 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color, lineHeight: 1, whiteSpace: 'nowrap' }}>
                           {lead.status}
                         </span>
                       </td>
@@ -206,8 +208,8 @@ export default function EmployeeLeads() {
             disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
             <ChevronLeft size={16} />
           </button>
-          <span style={{ fontSize: 13, color: '#64748b' }}>
-            Page <strong style={{ color: '#f1f5f9' }}>{page}</strong> / {totalPages}
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+            Page <strong style={{ color: 'var(--text-primary)' }}>{page}</strong> / {totalPages}
           </span>
           <button className="btn-secondary" style={{ padding: '8px 14px' }}
             disabled={page === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>

@@ -1,6 +1,7 @@
 const Meeting = require('../models/Meeting');
 const User = require('../models/User');
 const logActivity = require('../utils/activityLogger');
+const { notify, notifyAllAdmins } = require('../utils/notifHelper');
 
 const getMeetings = async (req, res) => {
   try {
@@ -38,6 +39,29 @@ const createMeeting = async (req, res) => {
     });
 
     await logActivity(req.user._id, 'Create Meeting', `Scheduled meeting for ${employee.name}`, meeting._id, 'Meeting');
+
+    // Notify the assigned employee (only if admin scheduled it for someone else)
+    if (employee._id.toString() !== req.user._id.toString()) {
+      const dateStr = scheduledAt
+        ? new Date(scheduledAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+        : 'TBD';
+      await notify(
+        employee._id,
+        'meeting_scheduled',
+        '📅 Meeting Scheduled for You',
+        `A meeting "${title}" has been scheduled for you on ${dateStr}.`,
+        '/employee/meetings'
+      );
+    }
+
+    // Notify all admins about the meeting (both when admin schedules for employee and when employee self-schedules)
+    await notifyAllAdmins(
+      'meeting_scheduled',
+      '📅 New Meeting Scheduled',
+      `${req.user.name} scheduled a meeting for ${employee.name}: "${title}".`,
+      '/admin/meetings'
+    );
+
     res.status(201).json(meeting);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -75,6 +99,17 @@ const changeMeetingStatus = async (req, res) => {
     meeting.status = status;
     await meeting.save();
     await logActivity(req.user._id, 'Change Meeting Status', `Status → ${status}`, meeting._id, 'Meeting');
+
+    // Notify admins when an employee marks a meeting status
+    if (req.user.role !== 'admin') {
+      await notifyAllAdmins(
+        'meeting_updated',
+        '📋 Meeting Status Updated',
+        `${req.user.name} marked meeting "${meeting.title}" as ${status}.`,
+        '/admin/meetings'
+      );
+    }
+
     res.json(meeting);
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -11,13 +11,14 @@ export default function WhatsAppButton({ phone, name }) {
   return (
     <button 
       onClick={handleWhatsApp}
+      title={`WhatsApp ${name}`}
       style={{
         background: '#25D366', color: 'white', border: 'none', 
-        borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600,
-        display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer'
+        borderRadius: 6, padding: '5px 8px', fontSize: 12, fontWeight: 600,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
       }}
     >
-      <MessageCircle size={14} /> WhatsApp
+      <MessageCircle size={14} />
     </button>
   );
 }

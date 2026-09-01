@@ -2,12 +2,7 @@ const Lead   = require('../models/Lead');
 const User   = require('../models/User');
 const SportsPlace = require('../models/SportsPlace');
 const logActivity = require('../utils/activityLogger');
-const Notification = require('../models/Notification');
-
-const sendNotif = async (recipientId, type, title, message, link) => {
-  try { await Notification.create({ recipient: recipientId, type, title, message, link }); }
-  catch (e) { console.error('[Notif]', e.message); }
-};
+const { notify, notifyAllAdmins } = require('../utils/notifHelper');
 
 /* ─────────────────────────────────────────────────────────
    GET /api/leads    — paginated, filtered, searchable
@@ -69,14 +64,37 @@ const getLeads = async (req, res) => {
 const createLead = async (req, res) => {
   try {
     const body = { ...req.body };
-    // Keep sportsPlaceName in sync with name if not set separately
     if (!body.sportsPlaceName) body.sportsPlaceName = body.name;
-    
-    // Handle empty assignedTo to avoid Mongoose casting error
-    if (!body.assignedTo) delete body.assignedTo;
+    if (!body.assignedTo) body.assignedTo = req.user._id;
+    body.createdBy = req.user._id;
+
+    // Check for duplicate lead by sportsPlaceId or phone / sno
+    let existing = null;
+    if (body.sportsPlaceId) {
+      existing = await Lead.findOne({ sportsPlaceId: body.sportsPlaceId });
+    }
+    if (!existing && body.phone) {
+      existing = await Lead.findOne({ phone: body.phone, sportsPlaceName: body.sportsPlaceName || body.name });
+    }
+
+    if (existing) {
+      return res.status(400).json({ 
+        message: 'Lead already exists for this location.',
+        lead: existing 
+      });
+    }
 
     const lead = await Lead.create(body);
     await logActivity(req.user._id, 'Create Lead', `Created: ${lead.name} (${lead.district || 'no district'})`, lead._id, 'Lead');
+
+    // Notify admins
+    await notifyAllAdmins(
+      'lead_created',
+      '📋 New Lead Created',
+      `Lead "${lead.sportsPlaceName || lead.name}" (${lead.district || 'No district'}) was created by ${req.user.name}.`,
+      '/admin/leads'
+    );
+
     res.status(201).json(lead);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -98,14 +116,24 @@ const updateLead = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
     await logActivity(req.user._id, 'Update Lead', `Status → ${lead.status}`, lead._id, 'Lead');
 
-    // Fire notification if assignedTo changed
+    // Notify employee if assignment changed
     const prevId = prevLead?.assignedTo?.toString();
     const newId  = body.assignedTo?.toString();
     if (newId && newId !== prevId) {
-      await sendNotif(
-        newId, 'lead_assigned', 'Lead Assigned to You',
+      await notify(
+        newId,
+        'lead_assigned',
+        'Lead Assigned to You',
         `A lead "${lead.sportsPlaceName || lead.name}" (${lead.district || ''}) has been assigned to you.`,
         '/employee/leads'
+      );
+
+      // Notify all admins about lead assignment
+      await notifyAllAdmins(
+        'lead_assigned',
+        '📋 Lead Assigned',
+        `Lead "${lead.sportsPlaceName || lead.name}" (${lead.district || ''}) has been assigned to an employee.`,
+        '/admin/leads'
       );
     }
 
@@ -247,15 +275,71 @@ const getPlacesByDistrict = async (req, res) => {
 
 const getAllLocations = async (req, res) => {
   try {
-    const locations = await SportsPlace.find({})
-      .select('name district address phone category sno contactAvailability source location')
-      .sort({ district: 1, name: 1 })
-      .lean();
+    const [locations, existingLeads] = await Promise.all([
+      SportsPlace.find({})
+        .select('name district address phone category sno contactAvailability source googleMapsLink sourceField isVisited visitedBy visitedByName visitedAt location')
+        .sort({ district: 1, name: 1 })
+        .lean(),
+      Lead.find({})
+        .select('sportsPlaceId name sportsPlaceName phone status contactPerson contactRole assignedTo createdAt')
+        .lean()
+    ]);
 
-    res.json(locations.map(loc => ({
-      ...loc,
-      displayAddress: loc.location?.address || loc.address || loc.name,
-    })));
+    // Build quick lookup map by sportsPlaceId, phone, and name
+    const leadByPlaceId = new Map();
+    const leadByPhone = new Map();
+
+    existingLeads.forEach(l => {
+      if (l.sportsPlaceId) leadByPlaceId.set(String(l.sportsPlaceId), l);
+      if (l.phone) leadByPhone.set(`${l.phone.trim()}|${(l.sportsPlaceName || l.name || '').trim().toLowerCase()}`, l);
+    });
+
+    res.json(locations.map(loc => {
+      const existing = leadByPlaceId.get(String(loc._id)) || leadByPhone.get(`${(loc.phone || '').trim()}|${(loc.name || '').trim().toLowerCase()}`);
+      return {
+        ...loc,
+        displayAddress: loc.location?.address || loc.address || loc.name,
+        existingLead: existing ? {
+          _id: existing._id,
+          status: existing.status,
+          contactPerson: existing.contactPerson,
+          createdAt: existing.createdAt
+        } : null
+      };
+    }));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/* ─────────────────────────────────────────────────────────
+   POST /api/leads/locations/:id/visit
+───────────────────────────────────────────────────────── */
+const markLocationVisited = async (req, res) => {
+  try {
+    const location = await SportsPlace.findById(req.params.id);
+    if (!location) {
+      return res.status(404).json({ message: 'Location not found' });
+    }
+
+    location.isVisited = true;
+    location.visitedBy = req.user._id;
+    location.visitedByName = req.user.name;
+    location.visitedAt = new Date();
+    await location.save();
+
+    await logActivity(req.user._id, 'Mark Location Visited', `Visited location: ${location.name}`, location._id, 'SportsPlace');
+
+    res.json({
+      message: 'Location marked as visited',
+      location: {
+        _id: location._id,
+        isVisited: true,
+        visitedBy: location.visitedBy,
+        visitedByName: location.visitedByName,
+        visitedAt: location.visitedAt
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -272,7 +356,47 @@ const bulkAssign = async (req, res) => {
     else if (district)    filter.district = district;
 
     const result = await Lead.updateMany(filter, { assignedTo: employeeId });
+
+    // Notify the assigned employee
+    const employee = await User.findById(employeeId).select('name');
+    if (employee) {
+      const count = result.modifiedCount;
+      const message = leadIds?.length 
+        ? `${count} leads have been assigned to you.`
+        : `${count} leads from ${district} district have been assigned to you.`;
+      
+      await notify(
+        employeeId,
+        'lead_assigned',
+        '📋 Leads Assigned to You',
+        message,
+        '/employee/leads'
+      );
+
+      // Notify all admins about bulk assignment
+      await notifyAllAdmins(
+        'lead_assigned',
+        '📋 Bulk Lead Assignment',
+        `${count} leads have been assigned to ${employee.name}.`,
+        '/admin/leads'
+      );
+    }
+
     res.json({ updated: result.modifiedCount });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/* ─────────────────────────────────────────────────────────
+   GET /api/leads/lookup/:sno
+   Fetch from Master Data (SportsPlace) by Serial Number
+───────────────────────────────────────────────────────── */
+const getPlaceBySno = async (req, res) => {
+  try {
+    const place = await SportsPlace.findOne({ sno: req.params.sno });
+    if (!place) return res.status(404).json({ message: 'No record found with that R.No' });
+    res.json(place);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -281,6 +405,6 @@ const bulkAssign = async (req, res) => {
 module.exports = {
   getLeads, createLead, updateLead, deleteLead, deleteAllLeads,
   convertLead, getLeadStats,
-  getDistricts, getPlacesByDistrict, getAllLocations,
-  bulkAssign,
+  getDistricts, getPlacesByDistrict, getAllLocations, markLocationVisited,
+  bulkAssign, getPlaceBySno,
 };

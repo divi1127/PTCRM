@@ -93,11 +93,12 @@ export default function ShopPage() {
           {sports.map(s => (
             <button key={s} onClick={() => setFilterSport(s)}
               style={{
-                padding: '8px 16px', borderRadius: 20, border: '1px solid',
+                padding: '0 16px', height: 32, borderRadius: 20, border: '1px solid',
                 borderColor: filterSport === s ? '#6366f1' : 'rgba(255,255,255,0.1)',
                 background: filterSport === s ? 'rgba(99,102,241,0.2)' : 'transparent',
                 color: filterSport === s ? '#818cf8' : '#64748b', cursor: 'pointer',
-                fontSize: 13, fontWeight: 600, textTransform: 'capitalize', transition: 'all 0.2s'
+                fontSize: 13, fontWeight: 600, textTransform: 'capitalize', transition: 'all 0.2s',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1
               }}>{s}</button>
           ))}
         </div>
@@ -119,7 +120,7 @@ export default function ShopPage() {
                   {p.sport === 'football' ? '⚽' : p.sport === 'cricket' ? '🏏' : p.sport === 'badminton' ? '🏸' : p.sport === 'basketball' ? '🏀' : '🎯'}
                 </div>
                 <div style={{ padding: '16px' }}>
-                  <div style={{ fontSize: 11, color: '#6366f1', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{p.category}</div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 20, padding: '0 8px', borderRadius: 4, background: 'rgba(99,102,241,0.15)', color: '#6366f1', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1, whiteSpace: 'nowrap', marginBottom: 6 }}>{p.category}</div>
                   <h4 style={{ fontWeight: 700, fontSize: 14, marginBottom: 6, color: '#f1f5f9' }}>{p.name}</h4>
                   <p style={{ fontSize: 12, color: '#64748b', marginBottom: 12, lineHeight: 1.5 }}>{p.description}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 12 }}>
@@ -156,7 +157,7 @@ export default function ShopPage() {
 
       {/* Cart Drawer */}
       {showCart && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowCart(false)}>
+        <div className="modal-overlay" role="presentation">
           <div style={{
             position: 'fixed', right: 0, top: 0, bottom: 0, width: 420,
             background: '#1a1a2e', borderLeft: '1px solid rgba(255,255,255,0.1)',

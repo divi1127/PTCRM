@@ -380,7 +380,7 @@ export default function AdminMeetings() {
 
       {/* Schedule / Edit Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && closeModal()}>
+        <div className="modal-overlay" role="presentation">
           <div className="modal-window" style={{ maxWidth: 640, width: '100%', padding: 28 }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
@@ -475,9 +475,9 @@ export default function AdminMeetings() {
                     {rNoResults.length > 0 && (
                       <div style={{
                         position: 'absolute', top: '100%', left: 0, right: 0,
-                        background: '#16162a', border: '1px solid rgba(255,255,255,0.12)',
+                        background: 'var(--bg-card)', border: '1px solid var(--border)',
                         borderRadius: 10, zIndex: 9999, maxHeight: 220, overflowY: 'auto',
-                        boxShadow: '0 12px 32px rgba(0,0,0,0.7)', marginTop: 4
+                        boxShadow: '0 12px 32px rgba(0,0,0,0.4)', marginTop: 4
                       }}>
                         {rNoResults.map(loc => (
                           <div key={loc._id} onClick={() => selectLocation(loc)}

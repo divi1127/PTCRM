@@ -10,7 +10,13 @@ const sportsPlaceSchema = new mongoose.Schema({
   category: { type: String, trim: true },
   contactAvailability: { type: String, enum: ['Yes', 'No'], default: 'Yes' },
   source: { type: String, enum: ['excel_import', 'manual'], default: 'excel_import' },
+  googleMapsLink: { type: String, default: '' },
+  sourceField: { type: String, default: '' },
   importBatch: { type: String, index: true },
+  isVisited: { type: Boolean, default: false, index: true },
+  visitedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  visitedByName: { type: String, default: '' },
+  visitedAt: { type: Date },
   type: { type: String },
   location: {
     lat: { type: Number },

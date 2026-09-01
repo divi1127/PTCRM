@@ -266,4 +266,16 @@ const getEmployeeStats = async (req, res) => {
   }
 };
 
-module.exports = { getRevenue, getLeadsConversion, getBookingsBySport, getAgentPerformance, getDashboardKPIs, getSportsPlaceStats, getAttendanceRecords, getTargets, getEmployeeStats };
+// @desc Get all payments
+const getPayments = async (req, res) => {
+  try {
+    const payments = await Payment.find()
+      .populate('client')
+      .sort({ date: -1 });
+    res.json(payments);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = { getRevenue, getLeadsConversion, getBookingsBySport, getAgentPerformance, getDashboardKPIs, getSportsPlaceStats, getAttendanceRecords, getTargets, getEmployeeStats, getPayments };

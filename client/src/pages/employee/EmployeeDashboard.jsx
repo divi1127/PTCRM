@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
-import { Target, Calendar, Clock, ArrowUpRight, CheckCircle, TrendingUp } from 'lucide-react';
+import { Target, Calendar, Clock, ArrowUpRight, CheckCircle, TrendingUp, Map as MapIcon } from 'lucide-react';
 
 export default function EmployeeDashboard() {
   const navigate = useNavigate();
@@ -22,26 +22,27 @@ export default function EmployeeDashboard() {
     { label: 'Today Meetings', value: stats?.meetings || 0, icon: Calendar, color: '#FB923C', route: '/employee/meetings' },
     { label: 'Attendance', value: stats?.attendance || 'Not Marked', icon: Clock, color: '#38bdf8', route: '/employee/attendance' },
     { label: 'Monthly Target', value: `${stats?.targetProgress || 0}%`, icon: TrendingUp, color: '#a78bfa', route: '/employee/targets' },
+    { label: 'Location Map', value: 'GIS', icon: MapIcon, color: '#10b981', route: '/employee/map' },
   ];
 
   if (loading) return <Layout><div className="loader"><div className="spinner" /></div></Layout>;
 
   return (
     <Layout title="Employee Dashboard">
-      <div className="kpi-grid" style={{ marginBottom: 30 }}>
+      <div className="kpi-grid" style={{ marginBottom: 24 }}>
         {cards.map((card, i) => (
           <div key={i} className="kpi-card glass-hover" onClick={() => navigate(card.route)} style={{ cursor: 'pointer' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 5 }}>{card.label}</p>
-                <h3 style={{ fontSize: 28, fontWeight: 800 }}>{card.value}</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 6 }}>{card.label}</p>
+                <h3 style={{ fontSize: 24, fontWeight: 800 }}>{card.value}</h3>
               </div>
               <div style={{ padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 12 }}>
-                <card.icon size={22} color={card.color} />
+                <card.icon size={20} color={card.color} />
               </div>
             </div>
-            <div style={{ marginTop: 15, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: card.color }}>
-              <ArrowUpRight size={14} /> <span>View Details</span>
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#64748b' }}>
+              <ArrowUpRight size={14} color={card.color} /> <span style={{ color: card.color }}>View Details</span>
             </div>
           </div>
         ))}

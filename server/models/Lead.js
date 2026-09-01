@@ -5,10 +5,18 @@ const leadSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   email: { type: String, lowercase: true },
 
+  sportsPlaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'SportsPlace', index: true },
   sno:   { type: String, trim: true }, // Serial number from Excel
   sportsPlaceName: { type: String, trim: true },
   district:        { type: String, trim: true, index: true },
   category:        { type: String, trim: true },
+
+  contactPerson:   { type: String, trim: true },
+  contactRole:     { type: String, trim: true },
+  alternatePhone:  { type: String, trim: true },
+  clientRequirement:{ type: String, trim: true },
+  clientResponse:  { type: String, trim: true },
+  interestLevel:   { type: String, enum: ['High', 'Medium', 'Low', 'Not Interested'], default: 'Medium' },
 
   source: {
     type: String,
@@ -17,14 +25,12 @@ const leadSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    // Active statuses + legacy values for existing data
-    enum: ['New Lead', 'Follow Up', 'Follow-up', 'Demo Scheduled', 'Conversion', 'Converted', 'Closed',
-           'New', 'Interested', 'Demo', 'Rejected'],
+    enum: ['New Lead', 'Contacted', 'Interested', 'Follow Up', 'Follow-up', 'Demo Scheduled', 'Demo Online', 'Demo Offline', 'Negotiation', 'Conversion', 'Converted', 'Not Interested', 'Wrong Number', 'Lost', 'Closed', 'New', 'Demo', 'Rejected'],
     default: 'New Lead',
   },
   contactAvailability: { type: String, enum: ['Yes', 'No'], default: 'Yes' },
 
-  leadType: { type: String, enum: ['Online', 'Offline'], default: 'Offline' },
+  leadType: { type: String, enum: ['Online', 'Offline', 'Field Visit'], default: 'Offline' },
   sport:    {
     type: String,
     enum: ['football', 'cricket', 'badminton', 'basketball', 'other'],
@@ -32,6 +38,9 @@ const leadSchema = new mongoose.Schema({
   },
 
   assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
+  createdBy:  { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  visitedBy:  { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  visitedAt:  { type: Date },
 
   notes: { type: String },
   telecallingNotes: [{

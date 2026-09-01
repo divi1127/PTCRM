@@ -59,7 +59,7 @@ export default function SettingsPage() {
           {activeTab === 'profile' && (
             <div className="fade-in">
               <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Profile Information</h3>
-              <p style={{ fontSize: 13, color: '#64748b', marginBottom: 28 }}>Manage your public profile and account details.</p>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 28 }}>Manage your public profile and account details.</p>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 32 }}>
                 <div style={{
@@ -73,7 +73,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <button className="btn-secondary" style={{ padding: '8px 16px', fontSize: 13 }}>Change Photo</button>
-                  <p style={{ fontSize: 11, color: '#475569', marginTop: 8 }}>JPG, GIF or PNG. Max size 2MB.</p>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>JPG, GIF or PNG. Max size 2MB.</p>
                 </div>
               </div>
 
@@ -107,14 +107,14 @@ export default function SettingsPage() {
           {activeTab === 'notifications' && (
             <div className="fade-in">
               <h4 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Notification Settings</h4>
-              <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>Control how you receive alerts and updates.</p>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Control how you receive alerts and updates.</p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {notificationSettings.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12 }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: 'var(--bg-surface)', borderRadius: 12 }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{item.label}</div>
-                      <div style={{ fontSize: 12, color: '#64748b' }}>{item.desc}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{item.desc}</div>
                     </div>
                     <input
                       type="checkbox"
@@ -131,7 +131,7 @@ export default function SettingsPage() {
           {activeTab === 'security' && (
             <div className="fade-in">
               <h4 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Security & Privacy</h4>
-              <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>Manage your password and security sessions.</p>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Manage your password and security sessions.</p>
 
               <div style={{ maxWidth: 400 }}>
                 <div style={{ marginBottom: 16 }}>
@@ -154,15 +154,15 @@ export default function SettingsPage() {
           {activeTab === 'preferences' && (
             <div className="fade-in">
               <h4 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>System Preferences</h4>
-              <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>Customize your interface experience.</p>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Customize your interface experience.</p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>Theme Mode</div>
-                    <div style={{ fontSize: 12, color: '#64748b' }}>Toggle between dark and light mode</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Toggle between dark and light mode</div>
                   </div>
-                  <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 4 }}>
+                  <div style={{ display: 'flex', background: 'var(--bg-surface)', borderRadius: 10, padding: 4, border: '1px solid var(--border)' }}>
                     <button style={{ padding: '6px 12px', border: 'none', borderRadius: 8, background: 'var(--primary)', color: 'black', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
                       <Moon size={14} /> Dark
                     </button>
@@ -175,7 +175,7 @@ export default function SettingsPage() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>Language</div>
-                    <div style={{ fontSize: 12, color: '#64748b' }}>Select your preferred language</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Select your preferred language</div>
                   </div>
                   <select className="form-input" style={{ width: 140 }}>
                     <option>English (IN)</option>

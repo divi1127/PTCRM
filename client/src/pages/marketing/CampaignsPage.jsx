@@ -125,7 +125,7 @@ export default function CampaignsPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+        <div className="modal-overlay" role="presentation">
           <div className="modal-box">
             <h3 style={{ fontWeight: 700, fontSize: 18, marginBottom: 20 }}>🚀 Create New Campaign</h3>
             <form onSubmit={handleCreate}>

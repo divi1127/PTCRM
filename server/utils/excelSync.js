@@ -1,11 +1,10 @@
 const XLSX = require('xlsx');
-const Lead = require('../models/Lead');
 const SportsPlace = require('../models/SportsPlace');
 const ImportHistory = require('../models/ImportHistory');
 const path = require('path');
-const fs   = require('fs');
+const fs = require('fs');
 
-const normalizeRow = (r, sheetName = '') => {
+const normalizeRow = (r, districtName) => {
   const keys = Object.keys(r);
   const get = (...candidates) => {
     for (const c of candidates) {
@@ -15,151 +14,109 @@ const normalizeRow = (r, sheetName = '') => {
     return '';
   };
 
-  // Derive a clean category from the sheet name (e.g. "Soapy football" -> "Soapy Football")
-  const sheetCategory = sheetName
-    ? sheetName.trim().replace(/\b\w/g, c => c.toUpperCase())
-    : '';
-
   return {
-    sno: get('s.no', 'sno', 's no', 'sl no', 'serial'),
-    sportsPlaceName: get('sports place name', 'sports place', 'place name', 'name', 'name '),
-    district: get('district'),
-    place: get('place', 'area', 'location', 'address'),
-    phone: get('contact number', 'contact no', 'phone', 'mobile', 'contact', 'phone '),
-    category: get('category', 'type', 'sport') || sheetCategory,
-    contactAvailability: get('contact available', 'contact availability', 'available') || 'Yes',
+    sno:                get('s.no', 'sno', 's no', 'sl no', 'serial'),
+    sportsPlaceName:    get('facility name', 'sports place name', 'place name', 'name'),
+    district:           get('district') || districtName,
+    place:              get('address', 'place', 'area', 'location'),
+    phone:              get('phone', 'contact number', 'contact no', 'mobile', 'contact'),
+    category:           get('category', 'type', 'sport'),
+    contactAvailability:get('contact available', 'contact availability', 'available') || 'Yes',
+    googleMapsLink:     get('maps link', 'google maps link', 'google maps', 'map link'),
+    sourceField:        get('source', 'origin file'),
   };
 };
 
 const syncExcelToDB = async () => {
   const candidates = [
-    path.join(__dirname, '../../TamilNadu_Sports_Data.xlsx'),
-    path.join(__dirname, '../TamilNadu_Sports_Data.xlsx'),
-    path.join(__dirname, '../../TamilNadu_Sports_Data .xlsx'),
-    path.join(__dirname, '../TamilNadu_Sports_Data .xlsx'),
+    path.join(__dirname, '../../TamilNadu_Sports_Facilities_Consolidated (1).xlsx'),
+    path.join(__dirname, '../TamilNadu_Sports_Facilities_Consolidated (1).xlsx'),
+    path.join(__dirname, '../../TamilNadu_Sports_Facilities_Combined_Deduplicated.xlsx'),
+    path.join(__dirname, '../TamilNadu_Sports_Facilities_Combined_Deduplicated.xlsx'),
   ];
   const filePath = candidates.find(p => fs.existsSync(p));
 
   if (!filePath) {
-    console.log('[ExcelSync] File not found in:', candidates);
+    console.log('[ExcelSync] File not found:', candidates);
     return { success: false, message: 'Excel file not found on server' };
   }
 
   try {
     const wb = XLSX.readFile(filePath, { cellDates: true });
-    let allRaw = [];
+    let allRows = [];
 
-    const TN_DISTRICTS = new Set([
-      'ariyalur','chengalpattu','chennai','coimbatore','cuddalore','dharmapuri',
-      'dindigul','erode','kallakurichi','kanchipuram','kanniyakumari','karur',
-      'krishnagiri','madurai','mayiladuthurai','nagapattinam','namakkal','nilgiris',
-      'perambalur','pudukkottai','ramanathapuram','ranipet','salem','sivagangai',
-      'tenkasi','thanjavur','theni','thoothukudi','tirunelveli','tiruchirappalli',
-      'tirupathur','tiruppur','tiruvallur','tiruvannamalai','tiruvarur','vellore',
-      'viluppuram','virudhunagar'
-    ]);
-
-    wb.SheetNames.forEach(name => {
-      if (name.toLowerCase().includes('master')) return;
-      const ws   = wb.Sheets[name];
+    wb.SheetNames.forEach(sheetName => {
+      if (sheetName.toLowerCase() === 'summary') return;
+      const ws = wb.Sheets[sheetName];
       const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
-      // Only use sheet name as category for non-district special sheets (e.g. "Soapy football")
-      const isDistrictSheet = TN_DISTRICTS.has(name.trim().toLowerCase());
-      const sheetRows = data.map(r => normalizeRow(r, isDistrictSheet ? '' : name));
-      allRaw = allRaw.concat(sheetRows);
+      data.forEach(r => allRows.push(normalizeRow(r, sheetName)));
     });
 
-    if (!allRaw.length) return { success: false, message: 'No data found in file' };
+    if (!allRows.length) return { success: false, message: 'No data found in file' };
 
-    const rows = allRaw.filter(r => r.sportsPlaceName); // already normalized per-sheet
+    // Deduplicate by composite key: sno + phone + name (case-insensitive)
+    const seen = new Set();
+    const uniqueRows = [];
+    allRows.forEach(r => {
+      const key = `${r.sno}|${r.phone}|${(r.sportsPlaceName || '').toLowerCase().trim()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueRows.push(r);
+      }
+    });
 
-    console.log(`[ExcelSync] Prepared ${rows.length} rows for indexing.`);
+    console.log(`[ExcelSync] Total rows: ${allRows.length}, After dedup: ${uniqueRows.length}`);
 
-    // Bulk operations
-    const sportsPlaceOps = [];
-    const leadOps = [];
+    // Ensure name fallback
+    uniqueRows.forEach(r => {
+      if (!r.sportsPlaceName) {
+        r.sportsPlaceName = r.sno
+          ? `${r.district || 'Unknown'} Facility #${r.sno}`
+          : `${r.district || 'Unknown'} Facility`;
+      }
+    });
 
-    for (const r of rows) {
-      const phone = r.phone || '';
-      const sno = r.sno || '';
-      const name = r.sportsPlaceName;
-      const district = r.district;
+    // Clear SportsPlace only — never touch Leads
+    await SportsPlace.deleteMany({});
+    console.log('[ExcelSync] Cleared SportsPlace collection.');
 
-      const placeData = {
-        name,
-        district,
-        address: r.place,
-        phone,
-        sno,
-        category: r.category || 'Other',
-        contactAvailability: r.contactAvailability || 'Yes',
-        source: 'excel_import',
-      };
-
-      const placeFilter = phone ? { phone } : { name, district, sno };
-      
-      sportsPlaceOps.push({
-        insertOne: {
-          document: placeData
-        }
-      });
-
-      const leadData = {
-        name,
-        sportsPlaceName: name,
-        phone,
-        sno,
-        district,
-        category: r.category || 'Other',
-        'location.address': r.place,
-        source: 'excel_import',
-        status: 'New Lead',
-        contactAvailability: r.contactAvailability || 'Yes',
-      };
-
-      leadOps.push({
-        insertOne: {
-          document: leadData
-        }
-      });
-    }
-
-    console.log(`[ExcelSync] Running bulk update for ${rows.length} records...`);
-    
-    // Drop the collection to prevent compounding duplicates on resync
-    try {
-      await SportsPlace.deleteMany({});
-      await Lead.deleteMany({});
-    } catch(e) {}
-
-    // Run in chunks to prevent memory issues
+    // Insert in chunks of 500
     const CHUNK_SIZE = 500;
-    for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
-      const spChunk = sportsPlaceOps.slice(i, i + CHUNK_SIZE);
-      const lChunk = leadOps.slice(i, i + CHUNK_SIZE);
-      await Promise.all([
-        SportsPlace.bulkWrite(spChunk, { ordered: false }),
-        Lead.bulkWrite(lChunk, { ordered: false })
-      ]);
-      console.log(`[ExcelSync] Completed chunk ${Math.floor(i / CHUNK_SIZE) + 1} / ${Math.ceil(rows.length / CHUNK_SIZE)}`);
+    let inserted = 0;
+
+    for (let i = 0; i < uniqueRows.length; i += CHUNK_SIZE) {
+      const chunk = uniqueRows.slice(i, i + CHUNK_SIZE).map(r => ({
+        name:                r.sportsPlaceName,
+        district:            r.district || 'Unknown',
+        address:             r.place || '',
+        phone:               r.phone || '',
+        sno:                 r.sno || '',
+        category:            r.category || 'Other',
+        contactAvailability: r.contactAvailability || 'Yes',
+        googleMapsLink:      r.googleMapsLink || '',
+        sourceField:         r.sourceField || '',
+        source:              'excel_import',
+      }));
+
+      await SportsPlace.insertMany(chunk, { ordered: false });
+      inserted += chunk.length;
+      console.log(`[ExcelSync] Inserted ${inserted}/${uniqueRows.length}`);
     }
 
-    const batchId = `SYNC_${Date.now()}`;
-    let skipped = 0;
     await ImportHistory.create({
-      batchId,
+      batchId:        `SYNC_${Date.now()}`,
       sourceFileName: path.basename(filePath),
-      sourceType: 'auto-sync',
-      totalRows: rows.length,
-      imported: rows.length,
-      duplicates: skipped,
-      failed: 0,
-      districts: Array.from(new Set(rows.map(r => r.district).filter(Boolean))),
-      notes: 'Bulk auto-sync from server Excel watcher',
+      sourceType:     'auto-sync',
+      totalRows:      allRows.length,
+      imported:       inserted,
+      duplicates:     allRows.length - uniqueRows.length,
+      failed:         0,
+      districts:      Array.from(new Set(uniqueRows.map(r => r.district).filter(Boolean))),
+      notes:          `Clean sync — SportsPlace only. Inserted: ${inserted}`,
     }).catch(() => {});
 
-    console.log(`[ExcelSync] Done — Total processed: ${rows.length}, Skipped: ${skipped}`);
-    return { success: true, total: rows.length, skipped };
+    console.log(`[ExcelSync] Done — Inserted: ${inserted}`);
+    return { success: true, total: inserted, duplicatesRemoved: allRows.length - uniqueRows.length };
   } catch (err) {
     console.error('[ExcelSync] Error:', err.message);
     return { success: false, message: err.message };

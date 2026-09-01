@@ -9,16 +9,16 @@ import {
 import WhatsAppButton from '../../components/WhatsAppButton';
 
 /* ─── constants ──────────────────────────────────────────────── */
-const STATUS_LIST = ['New Lead', 'Follow Up', 'Demo Scheduled (Online)', 'Demo Scheduled (Offline)', 'Conversion', 'Closed'];
+const STATUS_LIST = ['New Lead', 'Follow Up', 'Demo Online', 'Demo Offline', 'Conversion', 'Closed'];
 const CONTACT_AVAIL = ['Yes', 'No'];
 
 const STATUS_COLOR = {
-  'New Lead':                    { bg: 'rgba(173,255,47,0.12)',  color: '#adff2f' },
-  'Follow Up':                   { bg: 'rgba(251,191,36,0.12)',  color: '#fbbf24' },
-  'Demo Scheduled (Online)':     { bg: 'rgba(99,102,241,0.12)', color: '#818cf8' },
-  'Demo Scheduled (Offline)':    { bg: 'rgba(99,102,241,0.12)', color: '#818cf8' },
-  'Conversion':                  { bg: 'rgba(16,185,129,0.12)', color: '#10b981' },
-  'Closed':                      { bg: 'rgba(239,68,68,0.12)',  color: '#f87171' },
+  'New Lead':    { bg: 'rgba(173,255,47,0.12)',  color: '#adff2f' },
+  'Follow Up':   { bg: 'rgba(251,191,36,0.12)',  color: '#fbbf24' },
+  'Demo Online': { bg: 'rgba(99,102,241,0.12)',  color: '#818cf8' },
+  'Demo Offline':{ bg: 'rgba(56,189,248,0.12)',  color: '#38bdf8' },
+  'Conversion':  { bg: 'rgba(16,185,129,0.12)',  color: '#10b981' },
+  'Closed':      { bg: 'rgba(239,68,68,0.12)',   color: '#f87171' },
 };
 
 const normalizeStatus = (status) => {
@@ -26,27 +26,26 @@ const normalizeStatus = (status) => {
   const value = String(status).trim();
   if (/^new$/i.test(value)) return 'New Lead';
   if (/follow/i.test(value)) return 'Follow Up';
-  if (/demo/i.test(value)) return 'Demo Scheduled';
+  if (/demo.*online/i.test(value) || (value === 'Demo Scheduled' )) return 'Demo Online'; // fallback for old DB values handled in getStatusLabel
+  if (/demo.*offline/i.test(value)) return 'Demo Offline';
+  if (/demo/i.test(value)) return 'Demo Online'; // generic demo → online
   if (/convert/i.test(value)) return 'Conversion';
   if (/close/i.test(value)) return 'Closed';
   return value;
 };
 
 const getStatusLabel = (lead) => {
-  const status = normalizeStatus(lead.status);
-  if (status === 'Demo Scheduled') {
-    return `Demo Scheduled (${lead.leadType || 'Offline'})`;
+  const raw = String(lead.status || '').trim();
+  // Handle legacy DB value 'Demo Scheduled' by checking leadType
+  if (raw === 'Demo Scheduled') {
+    return lead.leadType === 'Online' ? 'Demo Online' : 'Demo Offline';
   }
-  return status;
+  return normalizeStatus(raw);
 };
 
 const matchStatusFilter = (lead, filter) => {
   if (!filter) return true;
-  const status = normalizeStatus(lead.status);
-  if (filter.startsWith('Demo Scheduled')) {
-    return status === 'Demo Scheduled' && getStatusLabel(lead) === filter;
-  }
-  return status === filter;
+  return getStatusLabel(lead) === filter;
 };
 
 const EMPTY_FORM = {
@@ -202,18 +201,12 @@ export default function AdminLeads() {
     }
   };
 
-  const handleQuickFetch = async () => {
-    if (!fetchSNo) return;
+  const handleAutoFetch = async (val) => {
+    const targetSNo = val || fetchSNo;
+    if (!targetSNo) return;
     setPlacesLoading(true);
     try {
-      let locations = allLocations;
-      if (locations.length === 0) {
-        const { data } = await API.get('/leads/locations');
-        locations = (data || []).map((item, index) => ({ ...item, rNo: String(11110001 + index) }));
-        setAllLocations(locations);
-      }
-      
-      const p = locations.find(l => l.rNo === fetchSNo || l.sno === fetchSNo);
+      const { data: p } = await API.get(`/leads/lookup/${targetSNo}`);
       if (p) {
         setForm(f => ({
           ...f,
@@ -222,19 +215,26 @@ export default function AdminLeads() {
           phone:           p.phone || '',
           category:        p.category || '',
           district:        p.district || '',
-          sno:             p.rNo || p.sno || fetchSNo,
+          sno:             p.sno || targetSNo,
           location:        { address: p.location?.address || p.displayAddress || p.address || '' },
           contactAvailability: p.contactAvailability || 'Yes',
         }));
-      } else {
-        alert('No record found with that R.No');
       }
-    } catch { 
-      alert('Error fetching data'); 
-    } finally { 
-      setPlacesLoading(false); 
+    } catch (err) {
+      if (err.response?.status === 404) {
+        // Only alert for manual fetch, maybe? 
+        // If it's auto fetch on blur, we should be quiet unless it's a manual click?
+        // Let's alert for now.
+        alert('No record found with that R.No');
+      } else {
+        alert('Error fetching data');
+      }
+    } finally {
+      setPlacesLoading(false);
     }
   };
+
+  const handleQuickFetch = () => handleAutoFetch(fetchSNo);
 
   /* ── open / close modal ──────────────────────────────────── */
   const openAdd = () => {
@@ -296,8 +296,11 @@ export default function AdminLeads() {
       if (!payload.assignedTo) delete payload.assignedTo;
       if (!payload.followUpDate) delete payload.followUpDate;
 
-      if (payload.status.startsWith('Demo Scheduled')) {
-        payload.leadType = payload.status.includes('Online') ? 'Online' : 'Offline';
+      if (payload.status === 'Demo Online') {
+        payload.leadType = 'Online';
+        payload.status = 'Demo Scheduled';
+      } else if (payload.status === 'Demo Offline') {
+        payload.leadType = 'Offline';
         payload.status = 'Demo Scheduled';
       } else if (payload.status === 'Follow Up') {
         payload.status = 'Follow Up';
@@ -324,7 +327,7 @@ export default function AdminLeads() {
 
   /* ── delete single ───────────────────────────────────────── */
   const handleDelete = async (id) => {
-    if (!confirm('Delete this lead?')) return;
+    if (!confirm('Permanently delete this lead? This action cannot be undone.')) return;
     await API.delete(`/leads/${id}`);
     fetchLeads();
   };
@@ -376,34 +379,26 @@ export default function AdminLeads() {
       <div className="page-header">
         <div>
           <h2 style={{ fontSize: 22, fontWeight: 700 }}>Lead Pipeline</h2>
-          <p style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
             {totalLeads.toLocaleString('en-IN')} total leads
           </p>
         </div>
         <div className="page-header-actions">
-          <button className="btn-secondary" onClick={handleSync}>
-            <RefreshCw size={15} /> <span className="mobile-hide">Sync Excel</span>
-          </button>
-          <button className="btn-secondary" onClick={() => navigate('/admin/import')}>
-            <FileSpreadsheet size={15} /> <span className="mobile-hide">Import</span>
-          </button>
-          <button className="btn-secondary" onClick={() => exportCSV(leads)}>
-            <Download size={15} /> <span className="mobile-hide">Export</span>
-          </button>
-          <button className="btn-danger" style={{ padding: '8px 16px', fontSize: 13 }}
+          <button className="btn-secondary" title="Sync Excel" onClick={handleSync}><RefreshCw size={16} /></button>
+          <button className="btn-secondary" title="Import" onClick={() => navigate('/admin/import')}><FileSpreadsheet size={16} /></button>
+          <button className="btn-secondary" title="Export" onClick={() => exportCSV(leads)}><Download size={16} /></button>
+          <button className="btn-danger" title="Delete All" style={{ padding: '8px 12px' }}
             onClick={() => { setDeleteConfirmText(''); setShowDeleteAll(true); }}>
-            <Trash2 size={15} /> <span className="mobile-hide">Delete All</span>
+            <Trash2 size={16} />
           </button>
-          <button className="btn-primary" onClick={openAdd}>
-            <Plus size={16} /> Add Lead
-          </button>
+          <button className="btn-primary" onClick={openAdd}><Plus size={16} /> Add Lead</button>
         </div>
       </div>
 
       {/* ── Search + Filters ── */}
       <div className="glass filter-bar">
         <div style={{ position: 'relative', flex: 2, width: '100%' }}>
-          <Search size={14} color="#64748b" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+          <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
           <input className="form-input" style={{ paddingLeft: 34 }} placeholder="Search name, district, phone, place…"
             value={search} onChange={e => setSearch(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchLeads(); } }} />
@@ -416,7 +411,7 @@ export default function AdminLeads() {
           <option value="">All Status</option>
           {STATUS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <div style={{ fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
            <span>{leads.length} of {totalLeads.toLocaleString('en-IN')}</span>
            {(search || filterStatus || filterDistrict) && (
               <button className="btn-secondary" style={{ padding: '6px 10px', fontSize: 11 }}
@@ -432,15 +427,17 @@ export default function AdminLeads() {
         {STATUS_LIST.map(s => {
           const count = leads.filter(l => matchStatusFilter(l, s)).length;
           const { bg, color } = STATUS_COLOR[s] || {};
+          const isActive = filterStatus === s;
           return (
-            <button key={s} onClick={() => setFilterStatus(filterStatus === s ? '' : s)}
+            <button key={s} onClick={() => setFilterStatus(isActive ? '' : s)}
               style={{
                 whiteSpace: 'nowrap',
-                background: filterStatus === s ? bg : 'rgba(255,255,255,0.04)',
-                color: filterStatus === s ? color : '#64748b',
-                border: `1px solid ${filterStatus === s ? color : 'rgba(255,255,255,0.08)'}`,
-                borderRadius: 20, padding: '6px 16px', cursor: 'pointer',
-                fontSize: 12, fontWeight: 600, transition: 'all 0.2s'
+                background: isActive ? bg : 'var(--bg-surface)',
+                color: isActive ? color : 'var(--text-muted)',
+                border: `1px solid ${isActive ? color : 'var(--border)'}`,
+                borderRadius: 20, padding: '0 14px', height: 28, cursor: 'pointer',
+                fontSize: 12, fontWeight: 600, transition: 'all 0.2s',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1
               }}>
               {s} ({count})
             </button>
@@ -449,34 +446,77 @@ export default function AdminLeads() {
       </div>
 
       {/* ── Table ── */}
-      <div className="glass table-wrapper">
+      <div className="glass table-wrapper" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto' }}>
         {loading ? (
           <div style={{ padding: 60, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
         ) : (
-          <div>
-            <table className="data-table">
+          <div style={{ overflowX: 'auto' }}>
+            {/* Mobile Card View */}
+            <div className="mobile-only" style={{ display: 'none' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {leads.map((lead) => {
+                  const statusLabel = getStatusLabel(lead);
+                  const sc = STATUS_COLOR[statusLabel] || STATUS_COLOR[normalizeStatus(lead.status)] || {};
+                  return (
+                    <div key={lead._id} className="glass lead-card" style={{ padding: 16, borderRadius: 16 }}>
+                      <div className="lead-card-header" style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontWeight: 700, fontSize: 16 }}>{lead.sportsPlaceName || lead.name}</div>
+                        <span style={{ 
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 22, padding: '0 10px', borderRadius: 20, 
+                          fontSize: 11, fontWeight: 700, lineHeight: 1, whiteSpace: 'nowrap',
+                          background: sc.bg, color: sc.color
+                        }}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12, marginBottom: 12 }}>
+                        <div><span style={{ color: 'var(--text-muted)' }}>District:</span> {lead.district || '—'}</div>
+                        <div><span style={{ color: 'var(--text-muted)' }}>Category:</span> {lead.category || '—'}</div>
+                        <div><span style={{ color: 'var(--text-muted)' }}>Assigned:</span> {lead.assignedTo?.name || 'Unassigned'}</div>
+                      </div>
+
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, padding: '8px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                        {lead.location?.address || 'No address'}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <span style={{ fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Phone size={13} color="var(--primary)" /> {lead.phone}
+                        </span>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <WhatsAppButton phone={lead.phone} name={lead.name} />
+                          <button onClick={() => openEdit(lead)} 
+                            style={{ background: 'rgba(99,102,241,0.15)', border: 'none', borderRadius: 6, padding: '6px', cursor: 'pointer', color: '#818cf8' }}>
+                            <Edit2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <table className="data-table" style={{ width: '100%', minWidth: 900 }}>
+  
               <thead>
                 <tr>
-                  <th style={{ width: 36 }}>
-                    <input type="checkbox" style={{ accentColor: '#adff2f' }}
-                      checked={selectedIds.length === leads.length && leads.length > 0}
-                      onChange={e => setSelectedIds(e.target.checked ? leads.map(l => l._id) : [])} />
-                  </th>
                   <th>R.No</th>
-                  <th>Name / Sports Place</th>
+                  <th>Name / Place</th>
                   <th>District</th>
                   <th>Category</th>
                   <th>Contact</th>
-                  <th>Place / Address</th>
-                  <th>Contact Avail.</th>
+                  <th>Address</th>
+                  <th>Avail.</th>
                   <th>Status</th>
-                  <th>Assigned To</th>
+                  <th>Assigned</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {leads.length === 0 ? (
-                  <tr><td colSpan={11} style={{ textAlign: 'center', padding: 60, color: '#64748b' }}>
+                  <tr><td colSpan={10} style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>
                     <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
                     No leads found. Click <strong style={{ color: '#adff2f' }}>+ Add Lead</strong> to create one.
                   </td></tr>
@@ -484,81 +524,85 @@ export default function AdminLeads() {
                   const statusLabel = getStatusLabel(lead);
                   const sc = STATUS_COLOR[statusLabel] || STATUS_COLOR[normalizeStatus(lead.status)] || {};
                   return (
-                    <tr key={lead._id} style={{ background: selectedIds.includes(lead._id) ? 'rgba(173,255,47,0.04)' : undefined }}>
-                      <td>
-                        <input type="checkbox" style={{ accentColor: '#adff2f' }}
-                          checked={selectedIds.includes(lead._id)}
-                          onChange={e => setSelectedIds(prev => e.target.checked ? [...prev, lead._id] : prev.filter(id => id !== lead._id))} />
-                      </td>
+                    <tr key={lead._id}>
                       <td style={{ fontSize: 12, color: '#64748b' }}>{lead.sno || idx + 1}</td>
-                      <td style={{ fontWeight: 600, fontSize: 13 }}>
+                      <td
+                        title={lead.sportsPlaceName || lead.name}
+                        style={{
+                          fontWeight: 600, fontSize: 13,
+                          maxWidth: 0, overflow: 'hidden',
+                          textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          cursor: 'default'
+                        }}
+                      >
                         {lead.sportsPlaceName || lead.name}
-                        {lead.sportsPlaceName && lead.sportsPlaceName !== lead.name && (
-                          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 400 }}>{lead.name}</div>
-                        )}
                       </td>
                       <td>
                         {lead.district ? (
-                          <span style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 20, padding: '0 8px', borderRadius: 6, background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', fontSize: 11, fontWeight: 600, lineHeight: 1, whiteSpace: 'nowrap' }} title={lead.district}>
                             {lead.district}
                           </span>
                         ) : '—'}
                       </td>
                       <td>
                         {lead.category ? (
-                          <span style={{ background: 'rgba(255,255,255,0.06)', color: '#f1f5f9', padding: '2px 8px', borderRadius: 6, fontSize: 11 }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 20, padding: '0 8px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', color: '#f1f5f9', fontSize: 11, fontWeight: 500, lineHeight: 1, whiteSpace: 'nowrap' }} title={lead.category}>
                             {lead.category}
                           </span>
                         ) : '—'}
                       </td>
                       <td>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13 }}>
-                          <Phone size={11} color="#64748b" /> {lead.phone}
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13 }} title={lead.phone}>
+                          <Phone size={11} color="#64748b" /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{lead.phone}</span>
                         </span>
                       </td>
-                      <td style={{ fontSize: 12, color: '#94a3b8', maxWidth: 200 }}>
-                        {lead.location?.address ? (
-                          <span style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
-                            <MapPin size={11} style={{ marginTop: 2, flexShrink: 0 }} />
-                            <span style={{ lineHeight: 1.4 }}>{lead.location.address}</span>
-                          </span>
-                        ) : '—'}
+                      <td
+                        title={lead.location?.address || ''}
+                        style={{
+                          fontSize: 12, color: '#94a3b8',
+                          maxWidth: 0, overflow: 'hidden',
+                          textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          cursor: lead.location?.address ? 'help' : 'default'
+                        }}
+                      >
+                        {lead.location?.address || '—'}
                       </td>
                       <td>
                         <span style={{
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 22, padding: '0 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', lineHeight: 1,
                           background: lead.contactAvailability === 'No' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
-                          color: lead.contactAvailability === 'No' ? '#f87171' : '#10b981',
-                          padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700
+                          color: lead.contactAvailability === 'No' ? '#f87171' : '#10b981'
                         }}>
                           {lead.contactAvailability || 'Yes'}
                         </span>
                       </td>
                       <td>
-                        <span style={{ background: sc.bg, color: sc.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 22, padding: '0 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', background: sc.bg, color: sc.color, lineHeight: 1, verticalAlign: 'middle' }} title={statusLabel}>
                           {statusLabel}
                         </span>
                       </td>
-                      <td style={{ fontSize: 13 }}>
-                        {lead.assignedTo?.name || <span style={{ color: '#475569', fontSize: 12 }}>Unassigned</span>}
+                      <td style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 0 }}
+                        title={lead.assignedTo?.name || 'Unassigned'}>
+                        {lead.assignedTo?.name || <span style={{ color: '#475569' }}>—</span>}
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: 6 }}>
+                        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                           <WhatsAppButton phone={lead.phone} name={lead.name} />
                           <button onClick={() => openEdit(lead)}
                             title="Edit"
-                            style={{ background: 'rgba(99,102,241,0.15)', border: 'none', borderRadius: 7, padding: '6px 10px', cursor: 'pointer', color: '#818cf8' }}>
+                            style={{ background: 'rgba(99,102,241,0.15)', border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: '#818cf8', display:'flex', alignItems:'center' }}>
                             <Edit2 size={13} />
                           </button>
                           {lead.status !== 'Converted' && (
                             <button onClick={() => handleConvert(lead._id)}
                               title="Mark Converted"
-                              style={{ background: 'rgba(16,185,129,0.15)', border: 'none', borderRadius: 7, padding: '6px 10px', cursor: 'pointer', color: '#10b981' }}>
+                              style={{ background: 'rgba(16,185,129,0.15)', border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: '#10b981', display:'flex', alignItems:'center' }}>
                               <UserCheck size={13} />
                             </button>
                           )}
                           <button onClick={() => handleDelete(lead._id)}
                             title="Delete"
-                            style={{ background: 'rgba(239,68,68,0.15)', border: 'none', borderRadius: 7, padding: '6px 10px', cursor: 'pointer', color: '#f87171' }}>
+                            style={{ background: 'rgba(239,68,68,0.15)', border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: '#f87171', display:'flex', alignItems:'center' }}>
                             <Trash2 size={13} />
                           </button>
                         </div>
@@ -591,44 +635,37 @@ export default function AdminLeads() {
 
       {/* ── ADD / EDIT LEAD MODAL ── */}
       {showModal && (
-        <div
-  style={{
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100vw',
-    height: '100vh',
-    background: 'rgba(0,0,0,0.75)',
-    backdropFilter: 'blur(6px)',
-    WebkitBackdropFilter: 'blur(6px)',
-    zIndex: 999999,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflowY: 'auto',
-    padding: '20px',
-  }}
-  onClick={(e) => e.target === e.currentTarget && closeModal()}
->
-          <div style={{
-            background: '#16162a',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 20,
-            padding: 32,
-            width: '100%', maxWidth: 780,
-            maxHeight: '92vh', overflowY: 'auto',
-            boxShadow: '0 24px 64px rgba(0,0,0,0.9)',
-          }}>
-
+        <div className="modal-overlay" onClick={closeModal}>
+          <div
+            className="modal-window"
+            style={{ maxWidth: 820 }}
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Modal header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ fontWeight: 700, fontSize: 18 }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20,
+              }}
+            >
+              <h3 style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-primary)' }}>
                 {editLead ? '✏️ Edit Lead' : '➕ Add New Lead'}
               </h3>
-              <button onClick={closeModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+              <button
+                onClick={closeModal}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-primary)',
+                }}
+              >
                 <X size={20} />
               </button>
             </div>
+
 
             {/* Quick Fetch (only on Add) */}
             {!editLead && (
@@ -653,9 +690,19 @@ export default function AdminLeads() {
                 {/* R.No */}
                 <div className="mobile-col-span-2">
                   <label className="form-label">R.No</label>
-                  <input className="form-input" value={form.sno}
+                  <input 
+                    className="form-input" 
+                    value={form.sno}
                     onChange={e => setForm(f => ({ ...f, sno: e.target.value }))}
-                    placeholder="R.No" />
+                    onBlur={(e) => {
+                      const val = e.target.value.trim();
+                      if (val && !editLead) {
+                        setFetchSNo(val);
+                        handleAutoFetch(val);
+                      }
+                    }}
+                    placeholder="R.No" 
+                  />
                 </div>
 
                 {/* Date */}
@@ -686,11 +733,24 @@ export default function AdminLeads() {
                 </div>
 
                 {/* Name */}
-                <div style={{ gridColumn: '1 / -1' }}>
+                <div style={{ gridColumn: '1 / -1', marginBottom: 4 }}>
                   <label className="form-label">Name *</label>
                   <input className="form-input" value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value, sportsPlaceName: e.target.value }))}
                     required placeholder="Enter name" />
+                </div>
+
+                {/* Address — directly below Name, minimal gap */}
+                <div style={{ gridColumn: '1 / -1', marginTop: 0 }}>
+                  <label className="form-label">Address</label>
+                  <input
+                    className="form-input"
+                    value={form.location.address}
+                    onChange={e => setForm(f => ({ ...f, location: { address: e.target.value } }))}
+                    placeholder="Full address"
+                    title={form.location.address}
+                    style={{ cursor: form.location.address ? 'help' : 'text' }}
+                  />
                 </div>
 
                 {/* Phone */}
@@ -711,14 +771,6 @@ export default function AdminLeads() {
                       <option key={emp._id} value={emp._id}>{emp.name}</option>
                     ))}
                   </select>
-                </div>
-
-                {/* Address */}
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label">Address</label>
-                  <input className="form-input" value={form.location.address}
-                    onChange={e => setForm(f => ({ ...f, location: { address: e.target.value } }))}
-                    placeholder="Full address" />
                 </div>
 
                 {/* Status */}
@@ -764,40 +816,19 @@ export default function AdminLeads() {
 
       {/* ── DELETE ALL CONFIRMATION MODAL ── */}
       {showDeleteAll && (
-        <div
-  style={{
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100vw',
-    height: '100vh',
-    background: 'rgba(0,0,0,0.75)',
-    backdropFilter: 'blur(6px)',
-    WebkitBackdropFilter: 'blur(6px)',
-    zIndex: 999999,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflowY: 'auto',
-    padding: '20px',
-  }}
-  onClick={(e) => e.target === e.currentTarget && closeModal()}
->
-          <div style={{
-            background: '#16162a',
-            border: '1px solid rgba(239,68,68,0.3)',
-            borderRadius: 20,
-            padding: 32,
-            width: '100%', maxWidth: 440,
-            boxShadow: '0 24px 64px rgba(0,0,0,0.9)',
-          }}>
+        <div className="modal-overlay" onClick={() => setShowDeleteAll(false)}>
+          <div
+            className="modal-box"
+            style={{ maxWidth: 440, border: '1px solid rgba(239,68,68,0.3)' }}
+            onClick={e => e.stopPropagation()}
+          >
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
               <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
                 <AlertTriangle size={26} color="#f87171" />
               </div>
               <h3 style={{ fontWeight: 700, fontSize: 18, color: '#f87171', marginBottom: 8 }}>Delete ALL Leads?</h3>
-              <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6 }}>
-                This will permanently delete <strong style={{ color: '#f1f5f9' }}>{totalLeads.toLocaleString('en-IN')} leads</strong> from the database. This action <strong style={{ color: '#f87171' }}>cannot be undone</strong>.
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                This will permanently delete <strong style={{ color: 'var(--text-primary)' }}>{totalLeads.toLocaleString('en-IN')} leads</strong> from the database. This action <strong style={{ color: '#f87171' }}>cannot be undone</strong>.
               </p>
             </div>
             <div style={{ marginBottom: 16 }}>
@@ -805,7 +836,8 @@ export default function AdminLeads() {
                 Type <strong>DELETE ALL</strong> to confirm
               </label>
               <input
-                style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: `1px solid ${deleteConfirmText === 'DELETE ALL' ? '#f87171' : 'rgba(255,255,255,0.1)'}`, borderRadius: 10, padding: '11px 16px', color: '#f1f5f9', fontSize: 14, outline: 'none' }}
+                className="form-input"
+                style={{ border: `1px solid ${deleteConfirmText === 'DELETE ALL' ? '#f87171' : 'var(--border)'}` }}
                 value={deleteConfirmText}
                 onChange={e => setDeleteConfirmText(e.target.value)}
                 placeholder="DELETE ALL"
@@ -825,7 +857,8 @@ export default function AdminLeads() {
               </button>
               <button
                 onClick={() => { setShowDeleteAll(false); setDeleteConfirmText(''); }}
-                style={{ flex: 1, background: 'rgba(255,255,255,0.06)', color: '#f1f5f9', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '10px 0', fontWeight: 500, cursor: 'pointer', fontSize: 14 }}>
+                className="btn-secondary"
+                style={{ flex: 1, justifyContent: 'center' }}>
                 Cancel
               </button>
             </div>

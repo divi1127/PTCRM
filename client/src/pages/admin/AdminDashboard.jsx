@@ -76,8 +76,8 @@ export default function AdminDashboard() {
           <div key={i} className="kpi-card glass-hover" style={{ animationDelay: `${i * 0.05}s` }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
-                <p style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>{card.label}</p>
-                <p style={{ fontSize: 24, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.5px' }}>{card.value}</p>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>{card.label}</p>
+                <p style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>{card.value}</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
                   <ArrowUpRight size={14} color={card.color} />
                   <span style={{ fontSize: 12, color: card.color, fontWeight: 600 }}>{card.delta}</span>
@@ -106,10 +106,10 @@ export default function AdminDashboard() {
           {monthlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="month" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} />
-                <YAxis tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} />
-                <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="month" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} axisLine={false} />
+                <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 12 }} axisLine={false} />
+                <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-primary)' }} />
                 <Line type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2.5} dot={{ fill: '#6366f1', r: 4 }} name="Revenue ₹" />
                 <Line type="monotone" dataKey="bookings" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981', r: 3 }} name="Bookings" />
               </LineChart>
@@ -124,7 +124,7 @@ export default function AdminDashboard() {
         {/* Lead Funnel */}
         <div className="glass" style={{ padding: 24 }}>
           <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Lead Pipeline</h3>
-          <p style={{ fontSize: 12, color: '#64748b', marginBottom: 20 }}>Status distribution</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20 }}>Status distribution</p>
           {leadFunnel.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={160}>
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
                   <Pie data={leadFunnel} cx="50%" cy="50%" innerRadius={45} outerRadius={75} dataKey="value" paddingAngle={3}>
                     {leadFunnel.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
                   </Pie>
-                  <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10 }} />
+                  <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-primary)' }} />
                 </PieChart>
               </ResponsiveContainer>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
@@ -167,10 +167,10 @@ export default function AdminDashboard() {
           {sportStats.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={sportStats} barSize={28}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} />
-                <YAxis tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} />
-                <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} axisLine={false} />
+                <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 12 }} axisLine={false} />
+                <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-primary)' }} />
                 <Bar dataKey="bookings" fill="#6366f1" radius={[6, 6, 0, 0]} name="Bookings" />
                 <Bar dataKey="revenue" fill="#10b981" radius={[6, 6, 0, 0]} name="Revenue ₹" />
               </BarChart>
@@ -199,8 +199,8 @@ export default function AdminDashboard() {
                     {i + 1}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9' }}>{a.agent.name}</div>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>{a.leadsCount} leads · {a.convertedCount} converted</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{a.agent.name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{a.leadsCount} leads · {a.convertedCount} converted</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: COLORS[i] }}>{a.conversionRate}%</div>
@@ -232,9 +232,9 @@ export default function AdminDashboard() {
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={sportsPlaceStats.byDistrict} layout="vertical" margin={{ left: 40 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                  <XAxis type="number" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} />
-                  <YAxis dataKey="_id" type="category" tick={{ fill: '#f1f5f9', fontSize: 11 }} axisLine={false} width={80} />
-                  <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10 }} />
+                  <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} axisLine={false} />
+                  <YAxis dataKey="_id" type="category" tick={{ fill: 'var(--text-primary)', fontSize: 11 }} axisLine={false} width={80} />
+                  <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-primary)' }} />
                   <Bar dataKey="count" fill="#adff2f" radius={[0, 4, 4, 0]} barSize={12} />
                 </BarChart>
               </ResponsiveContainer>
@@ -258,7 +258,7 @@ export default function AdminDashboard() {
                     <Pie data={sportsPlaceStats.byCategory} cx="50%" cy="50%" innerRadius={60} outerRadius={90} dataKey="count" paddingAngle={4}>
                       {sportsPlaceStats.byCategory.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
                     </Pie>
-                    <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10 }} />
+                    <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--text-primary)' }} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div style={{ width: '40%', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -266,7 +266,7 @@ export default function AdminDashboard() {
                     <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ width: 10, height: 10, borderRadius: '50%', background: COLORS[idx % COLORS.length] }} />
-                        <span style={{ fontSize: 12, color: '#f1f5f9' }}>{item._id}</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{item._id}</span>
                       </div>
                       <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>{item.count}</span>
                     </div>

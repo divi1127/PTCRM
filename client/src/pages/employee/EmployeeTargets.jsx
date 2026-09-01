@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
-import { Target, UploadCloud } from 'lucide-react';
+import { Target, UploadCloud, ExternalLink } from 'lucide-react';
 
 export default function EmployeeTargets() {
+  const navigate = useNavigate();
   const [targets, setTargets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -54,6 +56,12 @@ export default function EmployeeTargets() {
     }
   };
 
+  /* Open DataModule with rNo pre-searched */
+  const openInDataModule = (rNo) => {
+    if (!rNo) return;
+    navigate(`/admin/data-module?search=${encodeURIComponent(rNo)}`);
+  };
+
   return (
     <Layout title="My Targets">
       <div className="page-header">
@@ -76,15 +84,18 @@ export default function EmployeeTargets() {
           targets.map((t) => {
             const places = Array.isArray(t?.places) ? t.places : [];
             const placeNameFor = (p) => p?.placeName || p?.sportsPlaceName || p?.name || '—';
-            const addressFor = (p) => p?.address || p?.location?.address || p?.location?.addressLine || '—';
+            const addressFor   = (p) => p?.address || p?.location?.address || p?.location?.addressLine || '—';
+
+            const weeklyTarget   = t.weeklyTarget   || Math.ceil(Number(t.value || 0) / 4);
+            const weeklyAchieved = t.weeklyAchieved ?? 0;
+            const weeklyProgress = t.weeklyProgress ?? (weeklyTarget > 0 ? Math.round((weeklyAchieved / weeklyTarget) * 100) : 0);
 
             return (
               <div key={t._id} className="glass" style={{ padding: 24, borderRadius: 24 }}>
+                {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div
-                      style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(173,255,47,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    >
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(173,255,47,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Target size={20} color="var(--primary)" />
                     </div>
                     <div>
@@ -94,33 +105,54 @@ export default function EmployeeTargets() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, marginBottom: 20 }}>
-                  <div style={{ padding: 16, background: 'rgba(255,255,255,0.02)', borderRadius: 16, border: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Monthly Target</div>
-                    <div style={{ fontSize: 18, fontWeight: 800 }}>{t.value}</div>
+                {/* Stats grid — Monthly + Weekly */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 16 }}>
+                  <div style={{ padding: 14, background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Monthly Target</div>
+                    <div style={{ fontSize: 20, fontWeight: 800 }}>{t.value}</div>
                   </div>
-                  <div style={{ padding: 16, background: 'rgba(56,189,248,0.04)', borderRadius: 16, border: '1px solid rgba(56,189,248,0.1)' }}>
-                    <div style={{ fontSize: 12, color: '#38bdf8', marginBottom: 4 }}>Weekly Target</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: '#38bdf8' }}>{t.weeklyTarget || Math.ceil(Number(t.value || 0) / 4)}</div>
+                  <div style={{ padding: 14, background: 'rgba(56,189,248,0.04)', borderRadius: 14, border: '1px solid rgba(56,189,248,0.1)' }}>
+                    <div style={{ fontSize: 11, color: '#38bdf8', marginBottom: 4 }}>Weekly Target</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#38bdf8' }}>{weeklyTarget}</div>
+                    <div style={{ fontSize: 10, color: '#38bdf8' }}>Avg: {t.dailyAvg || (weeklyTarget/6).toFixed(1)}/day</div>
                   </div>
-                  <div style={{ padding: 16, background: 'rgba(251,191,36,0.03)', borderRadius: 16, border: '1px solid rgba(251,191,36,0.1)' }}>
-                    <div style={{ fontSize: 12, color: '#fbbf24', marginBottom: 4 }}>Follow Up</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: '#fbbf24' }}>{t.followUp || 0}</div>
+                  <div style={{ padding: 14, background: 'rgba(251,191,36,0.03)', borderRadius: 14, border: '1px solid rgba(251,191,36,0.1)' }}>
+                    <div style={{ fontSize: 11, color: '#fbbf24', marginBottom: 4 }}>Follow Up</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#fbbf24' }}>{t.followUp || 0}</div>
                   </div>
-                  <div style={{ padding: 16, background: 'rgba(173,255,47,0.03)', borderRadius: 16, border: '1px solid rgba(173,255,47,0.1)' }}>
-                    <div style={{ fontSize: 12, color: 'var(--primary)', marginBottom: 4 }}>Completed</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--primary)' }}>{t.achieved || 0}</div>
+                  <div style={{ padding: 14, background: 'rgba(173,255,47,0.03)', borderRadius: 14, border: '1px solid rgba(173,255,47,0.1)' }}>
+                    <div style={{ fontSize: 11, color: 'var(--primary)', marginBottom: 4 }}>Completed</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)' }}>{t.achieved || 0}</div>
+                  </div>
+                  <div style={{ padding: 14, background: 'rgba(56,189,248,0.04)', borderRadius: 14, border: '1px solid rgba(56,189,248,0.12)' }}>
+                    <div style={{ fontSize: 11, color: '#38bdf8', marginBottom: 4 }}>Done This Week</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#38bdf8' }}>{weeklyAchieved}</div>
                   </div>
                 </div>
 
-                <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Progress</span>
-                  <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{t.progress ?? 0}%</span>
-                </div>
-                <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden', marginBottom: 24 }}>
-                  <div style={{ height: '100%', width: `${Math.min(t.progress || 0, 100)}%`, background: 'var(--primary)', boxShadow: '0 0 10px var(--glow)' }} />
+                {/* Monthly progress */}
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Monthly Progress</span>
+                    <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{t.progress ?? 0}%</span>
+                  </div>
+                  <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${Math.min(t.progress || 0, 100)}%`, background: 'var(--primary)', boxShadow: '0 0 10px var(--glow)' }} />
+                  </div>
                 </div>
 
+                {/* Weekly progress */}
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ color: '#38bdf8' }}>Weekly Progress</span>
+                    <span style={{ fontWeight: 700, color: '#38bdf8' }}>{weeklyProgress}%</span>
+                  </div>
+                  <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${Math.min(weeklyProgress, 100)}%`, background: '#38bdf8' }} />
+                     </div>
+                </div>
+
+                {/* Places table */}
                 <h4 style={{ fontWeight: 700, marginBottom: 12 }}>Assigned Places ({places.length})</h4>
                 <div className="table-wrapper">
                   <div style={{ overflowX: 'auto' }}>
@@ -129,6 +161,7 @@ export default function EmployeeTargets() {
                         <tr>
                           <th>R.No</th>
                           <th>Place Name</th>
+                          <th>District</th>
                           <th>Address</th>
                           <th>Status</th>
                           <th>Upload Proof</th>
@@ -137,20 +170,45 @@ export default function EmployeeTargets() {
                       <tbody>
                         {places.length === 0 ? (
                           <tr>
-                            <td colSpan={5} style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)' }}>
+                            <td colSpan={6} style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)' }}>
                               No specific places assigned.
                             </td>
                           </tr>
                         ) : (
                           places.map((place) => (
                             <tr key={place._id}>
-                              <td style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{place.rNo || '—'}</td>
+                              {/* Clickable R.No */}
+                              <td>
+                                {place.rNo ? (
+                                  <button
+                                    onClick={() => openInDataModule(place.rNo)}
+                                    title={`View ${place.rNo} in Data Module`}
+                                    style={{
+                                      background: 'rgba(173,255,47,0.08)', border: '1px solid rgba(173,255,47,0.2)',
+                                      borderRadius: 6, padding: '3px 8px', cursor: 'pointer',
+                                      color: '#adff2f', fontSize: 12, fontWeight: 700,
+                                      display: 'inline-flex', alignItems: 'center', gap: 4
+                                    }}
+                                  >
+                                    {place.rNo} <ExternalLink size={10} />
+                                  </button>
+                                ) : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>}
+                              </td>
                               <td style={{ fontWeight: 600 }}>{placeNameFor(place)}</td>
-                              <td style={{ fontSize: 12, color: '#94a3b8' }}>{addressFor(place)}</td>
+                              <td>
+                                {(place.district || t.district) ? (
+                                  <span style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
+                                    {place.district || t.district}
+                                  </span>
+                                ) : <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>}
+                              </td>
+                              <td style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={addressFor(place)}>
+                                {addressFor(place)}
+                              </td>
                               <td>
                                 <select
                                   className={`form-input ${place.status === 'Completed' ? 'badge-converted' : place.status === 'Follow Up' ? 'badge-interested' : ''}`}
-                                  style={{ width: 130, padding: '4px 8px', fontSize: 13 }}
+                                  style={{ width: 120, padding: '4px 8px', fontSize: 12 }}
                                   value={place.status}
                                   onChange={(e) => handlePlaceUpdate(t._id, place._id, e.target.value)}
                                 >
@@ -160,27 +218,18 @@ export default function EmployeeTargets() {
                                 </select>
                               </td>
                               <td>
-                                <label
-                                  style={{
-                                    cursor: 'pointer',
-                                    color: 'var(--primary)',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 6,
-                                    opacity: uploading ? 0.5 : 1,
-                                  }}
-                                >
+                                <label style={{
+                                  cursor: 'pointer', color: 'var(--primary)',
+                                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                                  opacity: uploading ? 0.5 : 1,
+                                }}>
                                   <UploadCloud size={16} />
                                   <span style={{ fontSize: 12 }}>
                                     {(place.photos || []).length > 0 ? `${place.photos.length} uploaded` : 'Upload'}
                                   </span>
-                                  <input
-                                    type="file"
-                                    style={{ display: 'none' }}
-                                    accept="image/*"
+                                  <input type="file" style={{ display: 'none' }} accept="image/*"
                                     disabled={uploading}
-                                    onChange={(e) => handleUploadPhoto(t._id, place._id, e.target.files[0])}
-                                  />
+                                    onChange={(e) => handleUploadPhoto(t._id, place._id, e.target.files[0])} />
                                 </label>
                               </td>
                             </tr>
@@ -198,4 +247,3 @@ export default function EmployeeTargets() {
     </Layout>
   );
 }
-

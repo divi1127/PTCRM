@@ -58,6 +58,7 @@ function App() {
           <Route element={<EmployeeRoute />}>
             <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
             <Route path="/employee/leads" element={<EmployeeLeads />} />
+            <Route path="/employee/map" element={<LocationMap />} />
             <Route path="/employee/attendance" element={<AttendanceModule />} />
             <Route path="/employee/meetings" element={<AdminMeetings />} />
             <Route path="/employee/targets" element={<EmployeeTargets />} />

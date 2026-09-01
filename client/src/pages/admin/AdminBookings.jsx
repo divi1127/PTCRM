@@ -49,7 +49,7 @@ export default function AdminBookings() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h2 style={{ fontSize: 22, fontWeight: 700 }}>All Bookings</h2>
-          <p style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{bookings.length} total bookings</p>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{bookings.length} total bookings</p>
         </div>
         {/* Summary pills */}
         <div style={{ display: 'flex', gap: 10 }}>

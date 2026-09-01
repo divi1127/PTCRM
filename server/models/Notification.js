@@ -4,7 +4,17 @@ const notificationSchema = new mongoose.Schema({
   recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   type: {
     type: String,
-    enum: ['target_assigned', 'lead_assigned', 'general'],
+    enum: [
+      'target_assigned',
+      'lead_assigned',
+      'lead_created',
+      'meeting_scheduled',
+      'meeting_updated',
+      'attendance_checkin',
+      'attendance_checkout',
+      'target_updated',
+      'general',
+    ],
     default: 'general',
   },
   title: { type: String, required: true },

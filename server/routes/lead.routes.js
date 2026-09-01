@@ -3,8 +3,8 @@ const router  = express.Router();
 const {
   getLeads, createLead, updateLead, deleteLead, deleteAllLeads,
   convertLead, getLeadStats,
-  getDistricts, getPlacesByDistrict, getAllLocations,
-  bulkAssign,
+  getDistricts, getPlacesByDistrict, getAllLocations, markLocationVisited,
+  bulkAssign, getPlaceBySno,
 } = require('../controllers/leadController');
 const { protect, adminOnly, agentOrAdmin } = require('../middleware/authMiddleware');
 
@@ -12,6 +12,8 @@ const { protect, adminOnly, agentOrAdmin } = require('../middleware/authMiddlewa
 router.get('/stats',              protect, agentOrAdmin, getLeadStats);
 router.get('/districts',          protect, agentOrAdmin, getDistricts);
 router.get('/locations',          protect, agentOrAdmin, getAllLocations);
+router.post('/locations/:id/visit', protect, agentOrAdmin, markLocationVisited);
+router.get('/lookup/:sno',        protect, agentOrAdmin, getPlaceBySno);
 router.get('/places/:district',   protect, agentOrAdmin, getPlacesByDistrict);
 router.post('/bulk-assign',       protect, adminOnly,    bulkAssign);
 router.delete('/delete-all',      protect, adminOnly,    deleteAllLeads);

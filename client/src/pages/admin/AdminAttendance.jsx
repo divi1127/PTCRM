@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
-import { Calendar, Search, Filter, CheckCircle, XCircle, Clock, MapPin, Camera, User } from 'lucide-react';
+import { Calendar, Search, Filter, CheckCircle, XCircle, Clock, MapPin, Camera, User, X } from 'lucide-react';
 
 export default function AdminAttendance() {
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const getLocalToday = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const [date, setDate] = useState(getLocalToday());
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showSelfie, setShowSelfie] = useState(null);
 
   useEffect(() => {
     fetchAttendance();
@@ -58,13 +63,13 @@ export default function AdminAttendance() {
         </div>
         <div className="kpi-card">
           <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Late</p>
-          <p style={{ fontSize: 24, fontWeight: 800, color: '#f87171' }}>0</p>
+          <p style={{ fontSize: 24, fontWeight: 800, color: '#f87171' }}>{attendance.filter(a => a.status === 'Late').length}</p>
         </div>
       </div>
 
       <div className="glass table-wrapper">
         <div style={{ overflowX: 'auto' }}>
-          <table className="data-table">
+          <table className="data-table" style={{ minWidth: 900 }}>
             <thead>
               <tr>
                 <th>Employee</th>
@@ -84,33 +89,66 @@ export default function AdminAttendance() {
                 <tr key={i}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <User size={16} color="var(--primary)" />
+                      <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(173,255,47,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                        {a.checkIn?.selfie ? (
+                          <img src={a.checkIn.selfie} alt="Selfie" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onClick={() => setShowSelfie(a.checkIn.selfie)} />
+                        ) : (
+                          <User size={20} color="var(--primary)" />
+                        )}
                       </div>
-                      <span style={{ fontWeight: 600 }}>{a.user?.name}</span>
+                      <div>
+                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{a.user?.name || 'Unknown'}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{a.user?.email}</div>
+                      </div>
                     </div>
                   </td>
                   <td>
-                    <div style={{ fontSize: 14 }}>{a.checkIn?.time ? new Date(a.checkIn.time).toLocaleTimeString() : '—'}</div>
-                  </td>
-                  <td>
-                     <div style={{ fontSize: 14 }}>{a.checkOut?.time ? new Date(a.checkOut.time).toLocaleTimeString() : '—'}</div>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)' }}>
-                      <MapPin size={12} /> {a.location?.lat ? a.location.lat.toFixed(3) : '—'}, {a.location?.lng ? a.location.lng.toFixed(3) : '—'}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Clock size={14} /> {a.checkIn?.time ? new Date(a.checkIn.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                      </div>
+                      {a.checkIn?.location?.address && <div style={{ fontSize: 10, color: 'var(--text-muted)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.checkIn.location.address}</div>}
                     </div>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <Camera size={16} color="var(--secondary)" style={{ cursor: 'pointer' }} onClick={() => alert('View Selfie placeholder')} />
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Clock size={14} /> {a.checkOut?.time ? new Date(a.checkOut.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 500 }}>
+                        <MapPin size={12} color="var(--primary)" /> {a.location?.lat ? a.location.lat.toFixed(5) : '—'}, {a.location?.lng ? a.location.lng.toFixed(5) : '—'}
+                      </div>
+                      {a.location?.address && <div style={{ fontSize: 10, color: 'var(--text-muted)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.location.address}</div>}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      {a.checkIn?.selfie && (
+                        <div 
+                          style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                          onClick={() => setShowSelfie(a.checkIn.selfie)}
+                          title="View Check-in Selfie"
+                        >
+                          <Camera size={16} color="#818cf8" />
+                        </div>
+                      )}
                       {a.location?.lat && (
-                        <MapPin size={16} color="var(--primary)" style={{ cursor: 'pointer' }} onClick={() => window.open(`https://www.google.com/maps?q=${a.location.lat},${a.location.lng}`)} />
+                        <div 
+                          style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                          onClick={() => window.open(`https://www.google.com/maps?q=${a.location.lat},${a.location.lng}`)}
+                          title="View on Google Maps"
+                        >
+                          <MapPin size={16} color="#10b981" />
+                        </div>
                       )}
                     </div>
                   </td>
                   <td>
-                    <span className={`badge ${a.status === 'Present' ? 'badge-converted' : 'badge-lost'}`}>
+                    <span className={`badge ${a.status === 'Present' ? 'badge-converted' : a.status === 'Late' ? 'badge-interested' : 'badge-lost'}`}>
                       {a.status}
                     </span>
                   </td>
@@ -120,6 +158,24 @@ export default function AdminAttendance() {
           </table>
         </div>
       </div>
+
+      {showSelfie && (
+        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowSelfie(null)}>
+          <div className="modal-window" style={{ maxWidth: 400, padding: 0, overflow: 'hidden', position: 'relative' }} onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setShowSelfie(null)} 
+              style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer', zIndex: 10 }}
+            >
+              <X size={20} />
+            </button>
+            <img src={showSelfie} alt="Selfie" style={{ width: '100%', display: 'block' }} />
+            <div style={{ padding: 16, background: 'var(--bg-card)' }}>
+              <p style={{ fontWeight: 600, fontSize: 14 }}>Check-in Selfie Verification</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>Captured automatically during login</p>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

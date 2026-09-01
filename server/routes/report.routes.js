@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getRevenue, getLeadsConversion, getBookingsBySport, getAgentPerformance,
-  getDashboardKPIs, getSportsPlaceStats, getAttendanceRecords, getTargets, getEmployeeStats
+  getDashboardKPIs, getSportsPlaceStats, getAttendanceRecords, getTargets, getEmployeeStats, getPayments
 } = require('../controllers/reportController');
 const { protect, adminOnly, agentOrAdmin } = require('../middleware/authMiddleware');
 
@@ -15,5 +15,6 @@ router.get('/sports-place-stats', protect, adminOnly, getSportsPlaceStats);
 router.get('/attendance', protect, adminOnly, getAttendanceRecords);
 router.get('/targets', protect, agentOrAdmin, getTargets);
 router.get('/employee-stats', protect, getEmployeeStats);
+router.get('/payments', protect, adminOnly, getPayments);
 
 module.exports = router;

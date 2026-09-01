@@ -173,8 +173,8 @@ export default function AdminUsers() {
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
         ) : (
-          <div>
-            <table className="data-table">
+          <div style={{ overflowX: 'auto' }}>
+            <table className="data-table" style={{ minWidth: 800 }}>
               <thead>
                 <tr>
                   <th>User</th><th>Email</th><th>Phone</th><th>Role</th>
@@ -230,7 +230,7 @@ export default function AdminUsers() {
 
       {/* Add / Edit Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && closeModal()}>
+        <div className="modal-overlay" role="presentation">
           <div className="modal-box" style={{ maxWidth: 640, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h3 style={{ fontWeight: 700, fontSize: 18 }}>{editUser ? '✏️ Edit Employee' : '➕ Add New Employee'}</h3>
@@ -294,7 +294,7 @@ export default function AdminUsers() {
 
       {/* Reset Password Modal */}
       {showResetModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowResetModal(false)}>
+        <div className="modal-overlay" role="presentation">
           <div className="modal-box" style={{ maxWidth: 420 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h3 style={{ fontWeight: 700, fontSize: 18 }}>🔑 Reset Password</h3>

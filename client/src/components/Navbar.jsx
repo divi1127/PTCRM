@@ -9,6 +9,7 @@ export default function Navbar({ title = 'Dashboard', toggleSidebar, isSidebarOp
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [showSearchMobile, setShowSearchMobile] = useState(false);
   const notifRef = useRef(null);
 
   const toggleTheme = () => {
@@ -30,7 +31,6 @@ export default function Navbar({ title = 'Dashboard', toggleSidebar, isSidebarOp
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handler = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
@@ -64,137 +64,132 @@ export default function Navbar({ title = 'Dashboard', toggleSidebar, isSidebarOp
   };
 
   return (
-    <header style={{
-      height: 64, background: 'var(--bg-dark)', borderBottom: '1px solid var(--border)',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 28px', position: 'sticky', top: 0, zIndex: 50,
-      backdropFilter: 'blur(12px)'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        {/* Toggle: Menu when closed, X when open */}
-        <button
-          onClick={toggleSidebar}
-          title={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-          style={{
-            background: 'none', border: 'none', color: 'var(--text-muted)',
-            cursor: 'pointer', display: 'flex', alignItems: 'center',
-            padding: 6, borderRadius: 8, transition: 'background 0.2s'
-          }}
-        >
-          {isSidebarOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
-        <div>
-          <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{title}</h1>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        {/* Search */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          background: 'var(--bg-card)', border: '1px solid var(--border)',
-          borderRadius: 10, padding: '8px 14px'
-        }}>
-          <Search size={15} color="var(--text-muted)" />
-          <input placeholder="Search..." style={{ background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 13, width: 160 }} />
-        </div>
-
-        {/* Refresh */}
-        <button onClick={() => window.location.reload()} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: 9, cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
-          <RefreshCw size={18} />
-        </button>
-
-        {/* Theme */}
-        <button onClick={toggleTheme} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: 9, cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
-          {isDark ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
-
-        {/* Notification Bell */}
-        <div ref={notifRef} style={{ position: 'relative' }}>
+    <>
+      <header className="navbar" style={{
+        height: 64, background: 'var(--bg-dark)', borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 20px', position: 'sticky', top: 0, zIndex: 100,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
-            onClick={() => setShowNotifDropdown(v => !v)}
-            style={{ position: 'relative', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: 9, cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}
+            className="navbar-btn"
+            onClick={toggleSidebar}
+            style={{
+              background: 'none', border: 'none', color: 'var(--text-muted)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center',
+              padding: 6, borderRadius: 8
+            }}
           >
-            <Bell size={18} />
-            {unreadCount > 0 && (
-              <span style={{
-                position: 'absolute', top: 5, right: 5,
-                minWidth: 16, height: 16, borderRadius: 8,
-                background: '#ef4444', color: 'white',
-                fontSize: 9, fontWeight: 800,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: '0 3px', lineHeight: 1
-              }}>
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
+            <Menu size={22} />
+          </button>
+          <div className="navbar-info">
+            <h1 className="navbar-title" style={{ 
+              fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', 
+              margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', 
+              textOverflow: 'ellipsis', maxWidth: 'calc(100vw - 220px)' 
+            }}>{title}</h1>
+            <p className="navbar-subtitle desktop-only" style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
+              {new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Desktop Search */}
+          <div className="navbar-search" style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: 'var(--bg-card)', border: '1px solid var(--border)',
+            borderRadius: 10, padding: '6px 12px'
+          }}>
+            <Search size={14} color="var(--text-muted)" />
+            <input placeholder="Search records..." style={{ background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 12, width: 140 }} />
+          </div>
+
+          {/* Mobile Search Toggle */}
+          <button className="navbar-btn-circle mobile-only" onClick={() => setShowSearchMobile(true)}>
+            <Search size={18} />
           </button>
 
-          {/* Dropdown */}
-          {showNotifDropdown && (
-            <div style={{
-              position: 'absolute', right: 0, top: 46,
-              width: 340, maxHeight: 420, overflowY: 'auto',
-              background: '#111118', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
-              zIndex: 99999
-            }}>
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <span style={{ fontWeight: 700, fontSize: 14 }}>Notifications {unreadCount > 0 && <span style={{ color: '#ef4444', fontSize: 12 }}>({unreadCount} new)</span>}</span>
-                {unreadCount > 0 && (
-                  <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <CheckCheck size={14} /> Mark all read
-                  </button>
-                )}
-              </div>
+          {/* Refresh & Theme */}
+          <button className="navbar-btn-circle desktop-only" onClick={() => window.location.reload()} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: 8, cursor: 'pointer', color: 'var(--text-muted)' }}>
+            <RefreshCw size={18} />
+          </button>
 
-              {/* Items */}
-              {notifications.length === 0 ? (
-                <div style={{ padding: 30, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-                  🔔 No notifications yet
+          <button className="navbar-btn-circle" onClick={toggleTheme}>
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+
+          {/* Notification Bell */}
+          <div ref={notifRef} style={{ position: 'relative' }}>
+            <button
+              className="navbar-btn-circle"
+              onClick={() => setShowNotifDropdown(v => !v)}
+            >
+              <Bell size={18} />
+              {unreadCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: 3, right: 3,
+                  minWidth: 16, height: 16, borderRadius: 8,
+                  background: '#ef4444', color: 'white',
+                  fontSize: 9, fontWeight: 800,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '0 3px', border: '2px solid var(--bg-dark)'
+                }}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Dropdown */}
+            {showNotifDropdown && (
+              <div style={{
+                position: 'absolute', right: 0, top: 48,
+                width: 320, maxHeight: 420, overflowY: 'auto',
+                background: 'var(--bg-card)', border: '1px solid var(--border)',
+                borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                zIndex: 99999
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ fontWeight: 700, fontSize: 13 }}>Recent Activities</span>
+                  {unreadCount > 0 && (
+                    <button onClick={markAllRead} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 11, fontWeight: 600 }}>Mark all read</button>
+                  )}
                 </div>
-              ) : notifications.map(n => (
-                <div
-                  key={n._id}
-                  onClick={() => !n.read && markOneRead(n._id)}
-                  style={{
-                    padding: '12px 16px',
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    background: n.read ? 'transparent' : 'rgba(173,255,47,0.04)',
-                    cursor: n.read ? 'default' : 'pointer',
-                    display: 'flex', gap: 10, alignItems: 'flex-start'
-                  }}
-                >
-                  <span style={{ fontSize: 18, flexShrink: 0 }}>{typeIcon(n.type)}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: n.read ? 500 : 700, color: 'var(--text-primary)', marginBottom: 2 }}>{n.title}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>{n.message}</div>
-                    <div style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>
-                      {new Date(n.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                {notifications.length === 0 ? (
+                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>No notifications</div>
+                ) : notifications.map(n => (
+                  <div key={n._id} onClick={() => !n.read && markOneRead(n._id)} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: n.read ? 'transparent' : 'rgba(173,255,47,0.03)', cursor: 'pointer', display: 'flex', gap: 10 }}>
+                    <span style={{ fontSize: 16 }}>{typeIcon(n.type)}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: n.read ? 500 : 700, color: 'var(--text-primary)', marginBottom: 2 }}>{n.title}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.message}</div>
                     </div>
                   </div>
-                  {!n.read && <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, marginTop: 4 }} />}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-        {/* Avatar */}
-        <div style={{
-          width: 36, height: 36, borderRadius: '50%',
-          background: 'rgba(173, 255, 47, 0.1)',
-          border: '1px solid var(--primary)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 14, fontWeight: 700, color: 'var(--primary)', cursor: 'pointer'
-        }}>
-          {user?.name?.charAt(0).toUpperCase()}
+          {/* Avatar */}
+          <div className="navbar-avatar" style={{
+            width: 34, height: 34, borderRadius: '50%',
+            background: 'rgba(173, 255, 47, 0.1)', border: '1px solid var(--primary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, fontWeight: 700, color: 'var(--primary)', flexShrink: 0
+          }}>
+            {user?.name?.charAt(0).toUpperCase()}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Mobile Search Overlay */}
+      {showSearchMobile && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 64, background: 'var(--bg-dark)', zIndex: 101, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12, borderBottom: '1px solid var(--border)' }}>
+          <Search size={20} color="var(--text-muted)" />
+          <input autoFocus placeholder="Search..." style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 16 }} />
+          <button onClick={() => setShowSearchMobile(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 14, fontWeight: 600 }}>Cancel</button>
+        </div>
+      )}
+    </>
   );
 }

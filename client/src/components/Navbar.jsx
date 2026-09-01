@@ -68,25 +68,25 @@ export default function Navbar({ title = 'Dashboard', toggleSidebar, isSidebarOp
       <header className="navbar" style={{
         height: 64, background: 'var(--bg-dark)', borderBottom: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 20px', position: 'sticky', top: 0, zIndex: 100,
+        padding: '0 12px', position: 'sticky', top: 0, zIndex: 100, gap: 8,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
           <button
             className="navbar-btn"
             onClick={toggleSidebar}
             style={{
               background: 'none', border: 'none', color: 'var(--text-muted)',
               cursor: 'pointer', display: 'flex', alignItems: 'center',
-              padding: 6, borderRadius: 8
+              padding: 6, borderRadius: 8, flexShrink: 0
             }}
           >
             <Menu size={22} />
           </button>
-          <div className="navbar-info">
+          <div className="navbar-info" style={{ minWidth: 0, flex: 1 }}>
             <h1 className="navbar-title" style={{ 
               fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', 
               margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', 
-              textOverflow: 'ellipsis', maxWidth: 'calc(100vw - 220px)' 
+              textOverflow: 'ellipsis'
             }}>{title}</h1>
             <p className="navbar-subtitle desktop-only" style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
               {new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
@@ -94,9 +94,9 @@ export default function Navbar({ title = 'Dashboard', toggleSidebar, isSidebarOp
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           {/* Desktop Search */}
-          <div className="navbar-search" style={{
+          <div className="navbar-search desktop-only" style={{
             display: 'flex', alignItems: 'center', gap: 8,
             background: 'var(--bg-card)', border: '1px solid var(--border)',
             borderRadius: 10, padding: '6px 12px'
@@ -106,15 +106,16 @@ export default function Navbar({ title = 'Dashboard', toggleSidebar, isSidebarOp
           </div>
 
           {/* Mobile Search Toggle */}
-          <button className="navbar-btn-circle mobile-only" onClick={() => setShowSearchMobile(true)}>
+          <button className="navbar-btn-circle mobile-only" onClick={() => setShowSearchMobile(true)} style={{ display: 'flex' }}>
             <Search size={18} />
           </button>
 
-          {/* Refresh & Theme */}
+          {/* Refresh - desktop only */}
           <button className="navbar-btn-circle desktop-only" onClick={() => window.location.reload()} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: 8, cursor: 'pointer', color: 'var(--text-muted)' }}>
             <RefreshCw size={18} />
           </button>
 
+          {/* Theme toggle - desktop only */}
           <button className="navbar-btn-circle desktop-only" onClick={toggleTheme}>
             {isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>

@@ -407,8 +407,7 @@ body.modal-open { overflow: hidden !important; }
   position: fixed;
   left: 0;
   top: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   z-index: 1000;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -887,7 +886,7 @@ body.modal-open { overflow: hidden !important; }
   /* Sidebar hides, main takes full width */
   .sidebar { transform: translateX(calc(-1 * var(--sidebar-width))); }
   .sidebar.open { transform: translateX(0); }
-  .mobile-only { display: block !important; }
+  .mobile-only { display: flex !important; }
   .desktop-only { display: none !important; }
 
   .main-layout {

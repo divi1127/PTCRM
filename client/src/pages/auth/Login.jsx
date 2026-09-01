@@ -114,7 +114,17 @@ export default function Login() {
 
         <div className="glass" style={{ padding: 32 }}>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Welcome back 👋</h2>
-          <p style={{ color: '#64748b', fontSize: 13, marginBottom: 24 }}>Sign in — attendance captured automatically</p>
+          <p style={{ color: '#64748b', fontSize: 13, marginBottom: 16 }}>Sign in — attendance captured automatically</p>
+
+          {/* Quick Demo Access - moved to top */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
+            {demoUsers.map(u => (
+              <button key={u.label} onClick={() => quickLogin(u.email, u.password)}
+                style={{ background: `${u.color}15`, border: `1px solid ${u.color}40`, borderRadius: 8, padding: '8px 12px', cursor: 'pointer', color: u.color, fontSize: 12, fontWeight: 700, letterSpacing: '0.04em' }}>
+                ⚡ {u.label}
+              </button>
+            ))}
+          </div>
 
           {error && (
             <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
@@ -198,18 +208,6 @@ export default function Login() {
           <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: '#64748b' }}>
             Don't have an account? <Link to="/register" style={{ color: '#818cf8', fontWeight: 600 }}>Register</Link>
           </p>
-        </div>
-
-        <div className="glass" style={{ marginTop: 16, padding: 16 }}>
-          <p style={{ fontSize: 12, color: '#64748b', textAlign: 'center', marginBottom: 12, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>⚡ Quick Demo Access</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {demoUsers.map(u => (
-              <button key={u.label} onClick={() => quickLogin(u.email, u.password)}
-                style={{ background: `${u.color}15`, border: `1px solid ${u.color}40`, borderRadius: 8, padding: '8px 12px', cursor: 'pointer', color: u.color, fontSize: 12, fontWeight: 600 }}>
-                {u.label}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </div>

@@ -452,7 +452,7 @@ export default function AdminLeads() {
         ) : (
           <div style={{ overflowX: 'auto' }}>
             {/* Mobile Card View */}
-            <div style={{ display: 'none' }} className="leads-mobile-cards">
+            <div className="leads-mobile-cards">
               {leads.map((lead) => {
                 const statusLabel = getStatusLabel(lead);
                 const sc = STATUS_COLOR[statusLabel] || STATUS_COLOR[normalizeStatus(lead.status)] || {};

@@ -135,43 +135,80 @@ export default function AdminClients() {
         <div className="kpi-card"><p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Inactive</p><p style={{ fontSize: 24, fontWeight: 800, color: '#ef4444' }}>{clients.filter(c => c.status === 'Inactive').length}</p></div>
       </div>
 
-      <div className="glass table-wrapper">
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ position: 'relative', maxWidth: 300 }}>
-            <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
-            <input className="form-input" style={{ paddingLeft: 36 }} placeholder="Search clients..." value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
-        </div>
-        <div>
-          <table className="data-table">
-            <thead>
-              <tr><th>Client</th><th>Organization</th><th>Place</th><th>District</th><th>Plan</th><th>Status</th><th>Actions</th></tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40 }}><div className="spinner" style={{ margin: '0 auto' }} /></td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No clients found.</td></tr>
-              ) : filtered.map(c => (
-                <tr key={c._id}>
-                  <td><div style={{ fontWeight: 600 }}>{c.name}</div><div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.phone}</div></td>
-                  <td>{c.organization || '—'}</td>
-                  <td>{c.sportsPlaceDetails?.name || '—'}</td>
-                  <td>{c.sportsPlaceDetails?.district || '—'}</td>
-                  <td><span style={{ fontSize: 12, background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', padding: '2px 8px', borderRadius: 6 }}>{c.paymentPlan}</span></td>
-                  <td><span style={{ color: c.status === 'Active' ? '#10b981' : '#ef4444', fontSize: 12, fontWeight: 600 }}>● {c.status}</span></td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => openEdit(c)} style={{ background: 'rgba(99,102,241,0.15)', border: 'none', borderRadius: 7, padding: '6px 10px', cursor: 'pointer', color: '#818cf8' }}><Edit2 size={14} /></button>
-                      <button onClick={() => handleDelete(c._id)} style={{ background: 'rgba(239,68,68,0.12)', border: 'none', borderRadius: 7, padding: '6px 10px', cursor: 'pointer', color: '#f87171' }}><Trash2 size={14} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="glass" style={{ padding: '16px 20px 20px', marginBottom: 0 }}>
+        <div style={{ position: 'relative', maxWidth: 320 }}>
+          <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+          <input className="form-input" style={{ paddingLeft: 36 }} placeholder="Search clients..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
+
+      {loading ? (
+        <div style={{ padding: 60, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
+      ) : filtered.length === 0 ? (
+        <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>No clients found.</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginTop: 20 }}>
+          {filtered.map(c => (
+            <div key={c._id} className="glass" style={{ borderRadius: 16, overflow: 'hidden', transition: 'transform 0.2s', cursor: 'default' }}>
+              {/* Card top accent */}
+              <div style={{ height: 4, background: c.status === 'Active' ? 'linear-gradient(90deg,#10b981,#34d399)' : 'linear-gradient(90deg,#ef4444,#f87171)' }} />
+              <div style={{ padding: '16px 18px' }}>
+                {/* Header row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: c.status === 'Active' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: c.status === 'Active' ? '#10b981' : '#ef4444', flexShrink: 0 }}>
+                      {c.name?.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>{c.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{c.phone}</div>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: c.status === 'Active' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)', color: c.status === 'Active' ? '#10b981' : '#ef4444', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    {c.status}
+                  </span>
+                </div>
+
+                {/* Info rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                  {c.organization && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Organization</span>
+                      <span style={{ color: 'var(--text-primary)', fontWeight: 600, textAlign: 'right', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.organization}</span>
+                    </div>
+                  )}
+                  {c.sportsPlaceDetails?.name && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Place</span>
+                      <span style={{ color: 'var(--text-primary)', fontWeight: 600, textAlign: 'right', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.sportsPlaceDetails.name}</span>
+                    </div>
+                  )}
+                  {c.sportsPlaceDetails?.district && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                      <span style={{ color: 'var(--text-muted)' }}>District</span>
+                      <span style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', padding: '1px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>{c.sportsPlaceDetails.district}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Plan</span>
+                    <span style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', padding: '1px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>{c.paymentPlan}</span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+                  <button onClick={() => openEdit(c)} style={{ flex: 1, height: 34, background: 'rgba(99,102,241,0.12)', border: 'none', borderRadius: 8, cursor: 'pointer', color: '#818cf8', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Edit2 size={13} /> Edit
+                  </button>
+                  <button onClick={() => handleDelete(c._id)} style={{ flex: 1, height: 34, background: 'rgba(239,68,68,0.1)', border: 'none', borderRadius: 8, cursor: 'pointer', color: '#f87171', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Trash2 size={13} /> Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {showModal && (
         <div className="modal-overlay" role="presentation">

@@ -876,10 +876,10 @@ export default function MapModule({ toggleSidebar }) {
 
       {/* Add Lead Modal */}
       {leadTarget && (
-        <div style={{ position:'fixed', inset:0, zIndex:99999, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:'16px 12px' }} onClick={closeAddLead}>
+        <div style={{ position:'fixed', inset:0, zIndex:99999, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'12px 12px 0', overflowY:'auto' }} onClick={closeAddLead}>
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background:'#fff', width:'100%', maxWidth:520, maxHeight:'92vh', display:'flex', flexDirection:'column', borderRadius:20, overflow:'hidden', animation:'modalSlideIn 0.25s cubic-bezier(0.4,0,0.2,1)' }}
+            style={{ background:'#fff', width:'100%', maxWidth:520, maxHeight:'calc(100vh - 24px)', display:'flex', flexDirection:'column', borderRadius:20, overflow:'hidden', animation:'modalSlideIn 0.25s cubic-bezier(0.4,0,0.2,1)', marginBottom:12 }}
           >
             {/* Header with action buttons */}
             <div style={{ background:'linear-gradient(135deg,#1e40af,#2563eb)', padding:'14px 16px', flexShrink:0 }}>

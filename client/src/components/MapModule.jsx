@@ -625,69 +625,80 @@ export default function MapModule({ toggleSidebar }) {
           lg:mt-0
         `}>
           {/* Sidebar Header */}
-          <div className="px-4 pt-3 pb-3 border-b border-slate-200 shrink-0 bg-white">
-            <div className="flex items-center justify-between mb-4 lg:hidden">
-              <span className="font-bold text-slate-800">Locations</span>
-              <button onClick={() => setMobileView('map')} className="text-slate-400" style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+          <div style={{ background: 'linear-gradient(180deg,#1e293b 0%,#0f172a 100%)', padding: '12px 14px', flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            {/* Mobile top row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }} className="lg:hidden">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.7)' }} />
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#f1f5f9', letterSpacing: '0.04em' }}>LOCATIONS</span>
+              </div>
+              <button onClick={() => setMobileView('map')} style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#94a3b8' }}><X size={15} /></button>
             </div>
 
             {/* Search */}
-            <div className="flex items-center bg-slate-50 rounded-xl px-3 py-2.5 gap-2 mb-3 border border-slate-100">
-              <Search size={16} className="text-slate-400 shrink-0" />
-              <input 
-                type="text" 
-                placeholder="Search shops or address..." 
-                className="bg-transparent border-none focus:ring-0 text-sm w-full text-slate-700 font-medium placeholder-slate-400 min-w-0"
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '0 12px', height: 38, marginBottom: 10 }}>
+              <Search size={14} style={{ color: '#64748b', flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Search name, address, district..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
+                style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 12, fontWeight: 500, color: '#f1f5f9', minWidth: 0 }}
               />
-              {searchTerm && <button onClick={() => setSearchTerm('')}><X size={14} className="text-slate-400" /></button>}
+              {searchTerm && (
+                <button onClick={() => setSearchTerm('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', padding: 0 }}>
+                  <X size={13} />
+                </button>
+              )}
             </div>
 
-            {/* Filters */}
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="relative min-w-0">
-                <select 
-                  className="w-full min-w-0 border border-slate-200 rounded-lg text-[11px] font-bold uppercase appearance-none bg-white text-slate-800 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                  style={{ height: 34, padding: '0 28px 0 10px', lineHeight: '34px' }}
+            {/* Filters row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+              <div style={{ position: 'relative' }}>
+                <MapPin size={12} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#60a5fa', pointerEvents: 'none', zIndex: 1 }} />
+                <select
                   value={selectedDistrict}
-                  onChange={(e) => setSelectedDistrict(e.target.value)}
+                  onChange={e => setSelectedDistrict(e.target.value)}
+                  style={{ width: '100%', height: 34, background: 'rgba(255,255,255,0.07)', border: `1px solid ${selectedDistrict ? '#3b82f6' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, paddingLeft: 26, paddingRight: 8, fontSize: 11, fontWeight: 700, color: selectedDistrict ? '#93c5fd' : '#94a3b8', outline: 'none', appearance: 'none', cursor: 'pointer' }}
                 >
                   <option value="">All Districts</option>
                   {districts.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
-                <Filter size={12} className="absolute right-2.5 top-1/2 pointer-events-none" style={{ transform: 'translateY(-50%)', color: '#94a3b8' }} />
               </div>
-              <div className="relative min-w-0">
-                <select 
-                  className="w-full min-w-0 border border-slate-200 rounded-lg text-[11px] font-bold uppercase appearance-none bg-white text-slate-800 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                  style={{ height: 34, padding: '0 28px 0 10px', lineHeight: '34px' }}
+              <div style={{ position: 'relative' }}>
+                <Filter size={11} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#a78bfa', pointerEvents: 'none', zIndex: 1 }} />
+                <select
                   value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  onChange={e => setSelectedCategory(e.target.value)}
+                  style={{ width: '100%', height: 34, background: 'rgba(255,255,255,0.07)', border: `1px solid ${selectedCategory ? '#8b5cf6' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, paddingLeft: 26, paddingRight: 8, fontSize: 11, fontWeight: 700, color: selectedCategory ? '#c4b5fd' : '#94a3b8', outline: 'none', appearance: 'none', cursor: 'pointer' }}
                 >
                   <option value="">All Categories</option>
                   {Array.from(new Set(items.map(it => it.category).filter(Boolean))).sort().map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
-                <Filter size={12} className="absolute right-2.5 top-1/2 pointer-events-none" style={{ transform: 'translateY(-50%)', color: '#94a3b8' }} />
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <span style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                <span style={{ color: '#1e293b' }}>{filteredItems.length}</span> {showVisitedOnly ? 'VISITED' : 'LOCATIONS'}
-              </span>
+            {/* Count + Reset row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 20, fontWeight: 900, color: '#f1f5f9', lineHeight: 1 }}>{filteredItems.length.toLocaleString('en-IN')}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{showVisitedOnly ? 'Visited' : 'Locations'}</span>
+                {(selectedDistrict || selectedCategory || searchTerm) && (
+                  <span style={{ fontSize: 10, color: '#60a5fa', fontWeight: 600 }}>filtered</span>
+                )}
+              </div>
               {(selectedDistrict || selectedCategory || searchTerm || showVisitedOnly) && (
                 <button
                   onClick={() => { setSelectedDistrict(''); setSelectedCategory(''); setSearchTerm(''); setShowVisitedOnly(false); }}
-                  className="text-blue-500 hover:text-blue-600 flex items-center gap-1 transition-colors text-[10px] font-bold uppercase tracking-wider"
+                  style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, padding: '3px 10px', fontSize: 10, fontWeight: 700, color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                 >
-                  Reset <X size={10} strokeWidth={3} />
+                  <X size={9} strokeWidth={3} /> Reset
                 </button>
               )}
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto bg-slate-50 relative" style={{ scrollbarWidth: 'thin', padding: '14px 12px 14px 12px' }}>
+          <div className="flex-1 overflow-y-auto relative" style={{ scrollbarWidth: 'thin', padding: '12px 10px', background: '#f8fafc' }}>
             <AnimatePresence initial={false}>
               {filteredItems.length === 0 ? (
                 <motion.div 

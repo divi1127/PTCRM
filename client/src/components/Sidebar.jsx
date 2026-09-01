@@ -56,7 +56,7 @@ export default function Sidebar({ isOpen, sidebarClass, toggleSidebar }) {
         </button>
       </div>
 
-      {/* User info */}
+      {/* User info + Logout */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
@@ -64,14 +64,21 @@ export default function Sidebar({ isOpen, sidebarClass, toggleSidebar }) {
             background: 'var(--bg-card)',
             border: '1px solid var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 700, color: 'var(--primary)'
+            fontSize: 13, fontWeight: 700, color: 'var(--primary)', flexShrink: 0
           }}>
             {user?.name?.charAt(0).toUpperCase()}
           </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{user?.name}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
             <div style={{ fontSize: 11, color: 'var(--primary)', textTransform: 'capitalize', fontWeight: 500 }}>{user?.role}</div>
           </div>
+          <button
+            onClick={handleLogout}
+            title="Sign Out"
+            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, flexShrink: 0 }}
+          >
+            <LogOut size={15} /> Sign Out
+          </button>
         </div>
       </div>
 
@@ -91,14 +98,6 @@ export default function Sidebar({ isOpen, sidebarClass, toggleSidebar }) {
           </NavLink>
         ))}
       </nav>
-
-      {/* Logout */}
-      <div style={{ padding: '16px 10px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-        <button onClick={handleLogout} className="sidebar-item" style={{ width: '100%', border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444' }}>
-          <LogOut size={18} />
-          Sign Out
-        </button>
-      </div>
     </aside>
   );
 }

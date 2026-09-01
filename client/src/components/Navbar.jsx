@@ -115,8 +115,8 @@ export default function Navbar({ title = 'Dashboard', toggleSidebar, isSidebarOp
             <RefreshCw size={18} />
           </button>
 
-          {/* Theme toggle - desktop only */}
-          <button className="navbar-btn-circle desktop-only" onClick={toggleTheme}>
+          {/* Theme toggle - always visible */}
+          <button className="navbar-btn-circle" onClick={toggleTheme}>
             {isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 

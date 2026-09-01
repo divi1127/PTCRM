@@ -452,53 +452,51 @@ export default function AdminLeads() {
         ) : (
           <div style={{ overflowX: 'auto' }}>
             {/* Mobile Card View */}
-            <div className="mobile-only" style={{ display: 'none' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {leads.map((lead) => {
-                  const statusLabel = getStatusLabel(lead);
-                  const sc = STATUS_COLOR[statusLabel] || STATUS_COLOR[normalizeStatus(lead.status)] || {};
-                  return (
-                    <div key={lead._id} className="glass lead-card" style={{ padding: 16, borderRadius: 16 }}>
-                      <div className="lead-card-header" style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ fontWeight: 700, fontSize: 16 }}>{lead.sportsPlaceName || lead.name}</div>
-                        <span style={{ 
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 22, padding: '0 10px', borderRadius: 20, 
-                          fontSize: 11, fontWeight: 700, lineHeight: 1, whiteSpace: 'nowrap',
-                          background: sc.bg, color: sc.color
-                        }}>
-                          {statusLabel}
-                        </span>
+            <div style={{ display: 'none' }} className="leads-mobile-cards">
+              {leads.map((lead) => {
+                const statusLabel = getStatusLabel(lead);
+                const sc = STATUS_COLOR[statusLabel] || STATUS_COLOR[normalizeStatus(lead.status)] || {};
+                return (
+                  <div key={lead._id} style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 8 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {lead.sportsPlaceName || lead.name}
                       </div>
-                      
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12, marginBottom: 12 }}>
-                        <div><span style={{ color: 'var(--text-muted)' }}>District:</span> {lead.district || '—'}</div>
-                        <div><span style={{ color: 'var(--text-muted)' }}>Category:</span> {lead.category || '—'}</div>
-                        <div><span style={{ color: 'var(--text-muted)' }}>Assigned:</span> {lead.assignedTo?.name || 'Unassigned'}</div>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', background: sc.bg, color: sc.color, flexShrink: 0 }}>
+                        {statusLabel}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                      {lead.district && <span style={{ fontSize: 11, background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', padding: '2px 8px', borderRadius: 6, fontWeight: 600 }}>{lead.district}</span>}
+                      {lead.category && <span style={{ fontSize: 11, background: 'rgba(255,255,255,0.06)', color: '#f1f5f9', padding: '2px 8px', borderRadius: 6, fontWeight: 500 }}>{lead.category}</span>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                      <Phone size={12} color="var(--primary)" />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{lead.phone}</span>
+                    </div>
+                    {lead.location?.address && (
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {lead.location.address}
                       </div>
-
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, padding: '8px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-                        {lead.location?.address || 'No address'}
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                         <span style={{ fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Phone size={13} color="var(--primary)" /> {lead.phone}
-                        </span>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <WhatsAppButton phone={lead.phone} name={lead.name} />
-                          <button onClick={() => openEdit(lead)} 
-                            style={{ background: 'rgba(99,102,241,0.15)', border: 'none', borderRadius: 6, padding: '6px', cursor: 'pointer', color: '#818cf8' }}>
-                            <Edit2 size={14} />
-                          </button>
-                        </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{lead.assignedTo?.name || 'Unassigned'}</span>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <WhatsAppButton phone={lead.phone} name={lead.name} />
+                        <button onClick={() => openEdit(lead)} style={{ background: 'rgba(99,102,241,0.15)', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: '#818cf8', display: 'flex', alignItems: 'center' }}>
+                          <Edit2 size={13} />
+                        </button>
+                        <button onClick={() => handleDelete(lead._id)} style={{ background: 'rgba(239,68,68,0.15)', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: '#f87171', display: 'flex', alignItems: 'center' }}>
+                          <Trash2 size={13} />
+                        </button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
             </div>
 
-            <table className="data-table" style={{ width: '100%', minWidth: 900 }}>
+            <table className="data-table leads-desktop-table" style={{ width: '100%', minWidth: 900 }}>
   
               <thead>
                 <tr>

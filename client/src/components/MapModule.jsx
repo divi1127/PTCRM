@@ -874,248 +874,120 @@ export default function MapModule({ toggleSidebar }) {
         </div>
       )}
 
-      {/* Redesigned Add to Lead Modal */}
+      {/* Add Lead Modal */}
       {leadTarget && (
-        <div className="fixed inset-0 z-[99999] bg-black/75 flex items-center justify-center overflow-hidden" style={{ padding: '16px 12px' }} onClick={closeAddLead}>
-          <div 
-            className="bg-white rounded-3xl w-full max-w-[580px] shadow-2xl relative flex flex-col border border-slate-100" 
-            onClick={e => e.stopPropagation()} 
-            style={{ animation: 'modalSlideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1)', maxHeight: '92vh', overflow: 'hidden' }}
+        <div style={{ position:'fixed', inset:0, zIndex:99999, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'flex-end', justifyContent:'center', padding:0 }} onClick={closeAddLead}>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background:'#fff', width:'100%', maxWidth:560, maxHeight:'92vh', display:'flex', flexDirection:'column', borderRadius:'20px 20px 0 0', overflow:'hidden', animation:'modalSlideIn 0.25s cubic-bezier(0.4,0,0.2,1)' }}
           >
-            {/* 1. FIXED HEADER */}
-            <div className="border-b border-slate-100 shrink-0 relative bg-white rounded-t-3xl" style={{ padding: '20px 24px 20px 24px' }}>
-              <button 
-                onClick={closeAddLead} 
-                className="absolute top-6 right-6 text-slate-400 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100 transition-colors" 
-                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                <X size={20} />
-              </button>
-
-              <div className="flex items-center gap-4 pr-12">
-                <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shrink-0 shadow-md">
-                  <Target size={24} />
+            {/* Header */}
+            <div style={{ background:'linear-gradient(135deg,#1e40af,#2563eb)', padding:'16px 18px', flexShrink:0 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <div style={{ width:36, height:36, borderRadius:10, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <Target size={18} color="#fff" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.12em', color:'rgba(255,255,255,0.7)' }}>Field Visit Lead</div>
+                    <div style={{ fontSize:15, fontWeight:900, color:'#fff', lineHeight:1.2 }}>Create Lead</div>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1 rounded-md mb-1.5 inline-block leading-none">
-                    Master Data Linked
-                  </span>
-                  <h3 className="font-extrabold text-slate-900 text-lg sm:text-xl leading-snug truncate">Create Lead from Field Visit</h3>
-                  <p className="text-xs text-slate-500 font-semibold mt-1.5 truncate">{leadTarget.name}</p>
+                <button onClick={closeAddLead} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:8, width:30, height:30, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                  <X size={15} color="#fff" />
+                </button>
+              </div>
+              {/* Location strip */}
+              <div style={{ background:'rgba(255,255,255,0.12)', borderRadius:10, padding:'8px 12px', display:'flex', gap:8, alignItems:'flex-start' }}>
+                <MapPin size={13} color='rgba(255,255,255,0.8)' style={{ flexShrink:0, marginTop:1 }} />
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:12, fontWeight:800, color:'#fff', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{leadTarget.name}</div>
+                  <div style={{ fontSize:10, color:'rgba(255,255,255,0.7)', marginTop:2 }}>{leadTarget.category} • {leadTarget.district} • {leadTarget.phone}</div>
                 </div>
               </div>
             </div>
 
-            {/* 2. SCROLLABLE BODY WITH GENEROUS LEFT/RIGHT PADDING */}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-6" style={{ padding: '24px 24px 16px 24px' }}>
-              
-              {/* Linked Location Data (Data Model) Summary */}
-              <div className="bg-slate-50 rounded-2xl px-5 py-5 border border-slate-200/80 shadow-sm">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3.5 flex items-center gap-1.5">
-                  <MapPin size={13} className="text-red-500 shrink-0" /> Linked Location Data (Data Model)
+            {/* Scrollable body */}
+            <div style={{ flex:1, overflowY:'auto', padding:'16px 18px', display:'flex', flexDirection:'column', gap:14 }}>
+
+              {/* Contact */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                <div style={{ gridColumn:'1/-1' }}>
+                  <label style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:5 }}>Contact Person *</label>
+                  <input type="text" placeholder="e.g. Raj Kumar" value={contactPerson} onChange={e=>setContactPerson(e.target.value)}
+                    style={{ width:'100%', height:40, border:'1.5px solid #e2e8f0', borderRadius:10, padding:'0 12px', fontSize:13, fontWeight:600, color:'#1e293b', outline:'none', boxSizing:'border-box' }} />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 text-xs">
-                  <div>
-                    <span className="text-slate-400 font-bold block text-[10px] uppercase tracking-wider mb-1.5">Category / District</span>
-                    <span className="font-extrabold text-slate-800 text-xs block leading-tight">{leadTarget.category || 'Other'} • {leadTarget.district || 'TN'}</span>
-                  </div>
-                  <div className="sm:text-right">
-                    <span className="text-slate-400 font-bold block text-[10px] uppercase tracking-wider mb-1.5">Master Phone</span>
-                    <span className="font-extrabold text-slate-800 text-xs block leading-tight">{leadTarget.phone || 'N/A'}</span>
-                  </div>
-                  <div className="col-span-1 sm:col-span-2 pt-3.5 border-t border-slate-200/60">
-                    <span className="text-slate-400 font-bold block text-[10px] uppercase tracking-wider mb-1.5">Address</span>
-                    <span className="font-bold text-slate-700 text-xs leading-relaxed block">{leadTarget.location?.address || leadTarget.address || 'Address N/A'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Enter Sales Visit Information Form */}
-              <div className="space-y-5">
-                <div className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
-                  <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white shrink-0">
-                    <Plus size={15} strokeWidth={2.5} />
-                  </div>
-                  Enter Sales Visit Information
-                </div>
-
-                {/* Contact Person Name & Role */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5 block">
-                      Contact Person Name <span className="text-red-500 ml-0.5">*</span>
-                    </label>
-                    <input 
-                      type="text"
-                      required
-                      placeholder="e.g. Raj Kumar"
-                      className="w-full px-4 h-11 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all box-border bg-white"
-                      value={contactPerson}
-                      onChange={e => setContactPerson(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5 block">
-                      Contact Role
-                    </label>
-                    <select 
-                      className="w-full px-4 h-11 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white box-border"
-                      value={contactRole}
-                      onChange={e => setContactRole(e.target.value)}
-                    >
-                      <option value="Owner">Owner</option>
-                      <option value="Manager">Manager</option>
-                      <option value="In-charge">In-charge</option>
-                      <option value="Coach">Coach</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Phones */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5 block">
-                      Contact Phone <span className="text-red-500 ml-0.5">*</span>
-                    </label>
-                    <input 
-                      type="text"
-                      required
-                      placeholder="Primary contact phone"
-                      className="w-full px-4 h-11 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all box-border bg-white"
-                      value={leadPhone}
-                      onChange={e => setLeadPhone(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5 block">
-                      Alternate Phone (Optional)
-                    </label>
-                    <input 
-                      type="text"
-                      placeholder="Secondary phone"
-                      className="w-full px-4 h-11 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all box-border bg-white"
-                      value={alternatePhone}
-                      onChange={e => setAlternatePhone(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* Lead Status & Lead Type & Interest Level */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5 block">
-                      Lead Status
-                    </label>
-                    <select 
-                      className="w-full px-4 h-11 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white box-border"
-                      value={leadStatus}
-                      onChange={e => setLeadStatus(e.target.value)}
-                    >
-                      <option value="New Lead">New Lead</option>
-                      <option value="Contacted">Contacted</option>
-                      <option value="Interested">Interested</option>
-                      <option value="Follow Up">Follow Up</option>
-                      <option value="Demo Scheduled">Demo Scheduled</option>
-                      <option value="Negotiation">Negotiation</option>
-                      <option value="Converted">Converted</option>
-                      <option value="Not Interested">Not Interested</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5 block">
-                      Lead Type
-                    </label>
-                    <select 
-                      className="w-full px-4 h-11 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white box-border"
-                      value={leadType}
-                      onChange={e => setLeadType(e.target.value)}
-                    >
-                      <option value="Field Visit">Field Visit</option>
-                      <option value="Offline">Offline</option>
-                      <option value="Online">Online</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5 block">
-                      Interest Level
-                    </label>
-                    <select 
-                      className="w-full px-4 h-11 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white box-border"
-                      value={interestLevel}
-                      onChange={e => setInterestLevel(e.target.value)}
-                    >
-                      <option value="High">High</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Low">Low</option>
-                      <option value="Not Interested">Not Interested</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Client Requirement & Follow-up Date */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5 block">
-                      Client Requirement
-                    </label>
-                    <input 
-                      type="text"
-                      placeholder="e.g. Booking system, Turf software"
-                      className="w-full px-4 h-11 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all box-border bg-white"
-                      value={clientRequirement}
-                      onChange={e => setClientRequirement(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5 block">
-                      Follow-up Date
-                    </label>
-                    <input 
-                      type="date"
-                      className="w-full px-4 h-11 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white box-border"
-                      value={followUpDate}
-                      onChange={e => setFollowUpDate(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* Visit Notes */}
                 <div>
-                  <label className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5 block">
-                    Visit Notes / Discussion
-                  </label>
-                  <textarea 
-                    className="w-full p-3.5 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none box-border bg-white"
-                    rows={3}
-                    placeholder="Record key conversation details with owner/manager..."
-                    value={notes}
-                    onChange={e => setNotes(e.target.value)}
-                  />
+                  <label style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:5 }}>Role</label>
+                  <select value={contactRole} onChange={e=>setContactRole(e.target.value)}
+                    style={{ width:'100%', height:40, border:'1.5px solid #e2e8f0', borderRadius:10, padding:'0 10px', fontSize:13, fontWeight:600, color:'#1e293b', background:'#fff', outline:'none', boxSizing:'border-box' }}>
+                    <option>Owner</option><option>Manager</option><option>In-charge</option><option>Coach</option><option>Other</option>
+                  </select>
                 </div>
+                <div>
+                  <label style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:5 }}>Phone *</label>
+                  <input type="text" placeholder="Phone" value={leadPhone} onChange={e=>setLeadPhone(e.target.value)}
+                    style={{ width:'100%', height:40, border:'1.5px solid #e2e8f0', borderRadius:10, padding:'0 12px', fontSize:13, fontWeight:600, color:'#1e293b', outline:'none', boxSizing:'border-box' }} />
+                </div>
+              </div>
+
+              {/* Status row */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
+                <div>
+                  <label style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:5 }}>Status</label>
+                  <select value={leadStatus} onChange={e=>setLeadStatus(e.target.value)}
+                    style={{ width:'100%', height:40, border:'1.5px solid #e2e8f0', borderRadius:10, padding:'0 8px', fontSize:12, fontWeight:600, color:'#1e293b', background:'#fff', outline:'none', boxSizing:'border-box' }}>
+                    <option>New Lead</option><option>Contacted</option><option>Interested</option><option>Follow Up</option><option>Demo Scheduled</option><option>Converted</option><option>Not Interested</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:5 }}>Type</label>
+                  <select value={leadType} onChange={e=>setLeadType(e.target.value)}
+                    style={{ width:'100%', height:40, border:'1.5px solid #e2e8f0', borderRadius:10, padding:'0 8px', fontSize:12, fontWeight:600, color:'#1e293b', background:'#fff', outline:'none', boxSizing:'border-box' }}>
+                    <option>Field Visit</option><option>Offline</option><option>Online</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:5 }}>Interest</label>
+                  <select value={interestLevel} onChange={e=>setInterestLevel(e.target.value)}
+                    style={{ width:'100%', height:40, border:'1.5px solid #e2e8f0', borderRadius:10, padding:'0 8px', fontSize:12, fontWeight:600, color:'#1e293b', background:'#fff', outline:'none', boxSizing:'border-box' }}>
+                    <option>High</option><option>Medium</option><option>Low</option><option>Not Interested</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Requirement + Follow-up */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                <div>
+                  <label style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:5 }}>Requirement</label>
+                  <input type="text" placeholder="e.g. Booking system" value={clientRequirement} onChange={e=>setClientRequirement(e.target.value)}
+                    style={{ width:'100%', height:40, border:'1.5px solid #e2e8f0', borderRadius:10, padding:'0 12px', fontSize:13, color:'#1e293b', outline:'none', boxSizing:'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:5 }}>Follow-up Date</label>
+                  <input type="date" value={followUpDate} onChange={e=>setFollowUpDate(e.target.value)}
+                    style={{ width:'100%', height:40, border:'1.5px solid #e2e8f0', borderRadius:10, padding:'0 12px', fontSize:13, color:'#1e293b', outline:'none', boxSizing:'border-box', background:'#fff' }} />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:5 }}>Visit Notes</label>
+                <textarea rows={3} placeholder="Key discussion points..." value={notes} onChange={e=>setNotes(e.target.value)}
+                  style={{ width:'100%', border:'1.5px solid #e2e8f0', borderRadius:10, padding:'10px 12px', fontSize:13, color:'#1e293b', outline:'none', resize:'none', boxSizing:'border-box', fontFamily:'inherit' }} />
               </div>
             </div>
 
-            {/* 3. FIXED FOOTER - PINNED AT BOTTOM */}
-            <div className="border-t border-slate-100 bg-slate-50/90 shrink-0 flex items-center justify-end gap-3.5 rounded-b-3xl" style={{ padding: '16px 24px 16px 24px' }}>
-              <button 
-                type="button"
-                onClick={closeAddLead}
-                className="px-6 h-12 rounded-xl text-xs font-extrabold uppercase tracking-wider bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 transition-all active:scale-95 shadow-sm flex items-center justify-center"
-              >
+            {/* Footer */}
+            <div style={{ padding:'12px 18px', borderTop:'1px solid #f1f5f9', display:'flex', gap:10, flexShrink:0, background:'#fafafa' }}>
+              <button onClick={closeAddLead}
+                style={{ flex:1, height:44, borderRadius:12, border:'1.5px solid #e2e8f0', background:'#fff', color:'#64748b', fontSize:13, fontWeight:700, cursor:'pointer' }}>
                 Cancel
               </button>
-              <button 
-                type="button"
-                onClick={handleAddLead}
-                disabled={submitting}
-                className="px-7 h-12 rounded-xl text-xs font-extrabold uppercase tracking-wider bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all flex items-center justify-center gap-2 active:scale-95 min-w-[160px]"
-                style={{ opacity: submitting ? 0.7 : 1 }}
-              >
-                {submitting ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} strokeWidth={2.5} />}
-                {submitting ? 'Creating Lead...' : 'Create Lead'}
+              <button onClick={handleAddLead} disabled={submitting}
+                style={{ flex:2, height:44, borderRadius:12, border:'none', background:'linear-gradient(135deg,#1e40af,#2563eb)', color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, opacity:submitting?0.7:1 }}>
+                {submitting ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} strokeWidth={2.5} />}
+                {submitting ? 'Creating...' : 'Create Lead'}
               </button>
             </div>
           </div>

@@ -988,6 +988,15 @@ body.modal-open { overflow: hidden !important; }
   .bottom-nav-icon-wrap { width: 32px; height: 26px; }
 }
 
+/* Leads page: mobile cards / desktop table toggle */
+.leads-mobile-cards { display: none; }
+.leads-desktop-table { display: table; }
+
+@media (max-width: 768px) {
+  .leads-mobile-cards { display: block; }
+  .leads-desktop-table { display: none !important; }
+}
+
 /* Responsive Table Cards (Mobile) */
 @media (max-width: 640px) {
   .lead-card {

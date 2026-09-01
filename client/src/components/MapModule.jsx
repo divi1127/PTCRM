@@ -533,35 +533,31 @@ export default function MapModule({ toggleSidebar }) {
         {/* Visited filter toggle */}
         <button
           onClick={() => setShowVisitedOnly(v => !v)}
-          className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[11px] font-bold transition-all shrink-0"
+          className="flex items-center gap-1 h-7 rounded-lg font-bold transition-all shrink-0"
           style={{
             background: showVisitedOnly ? '#ecfdf5' : '#f8fafc',
             border: showVisitedOnly ? '1.5px solid #6ee7b7' : '1.5px solid #e2e8f0',
             color: showVisitedOnly ? '#047857' : '#64748b',
             cursor: 'pointer',
+            fontSize: 10,
+            padding: '0 7px',
           }}
         >
-          <CheckCircle2 size={13} />
-          <span className="hidden sm:inline">{showVisitedOnly ? 'Visited Only' : 'Visited'}</span>
+          <CheckCircle2 size={12} />
+          <span>{showVisitedOnly ? 'Visited' : 'Visited'}</span>
         </button>
 
         {/* Mobile view toggle */}
-        <div className="lg:hidden flex items-center bg-slate-100 rounded-lg p-0.5">
+        <div className="lg:hidden flex items-center bg-slate-100 rounded-lg" style={{ padding: 2 }}>
           <button
             onClick={() => setMobileView('list')}
-            className={`flex items-center justify-center gap-1 rounded-md text-xs font-bold px-2.5 h-7 transition-colors ${
-              mobileView === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'
-            }`}
-            style={{ background: mobileView === 'list' ? '#fff' : 'none', border: 'none', cursor: 'pointer' }}
+            style={{ background: mobileView === 'list' ? '#fff' : 'none', border: 'none', cursor: 'pointer', borderRadius: 6, width: 28, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', color: mobileView === 'list' ? '#2563eb' : '#94a3b8', boxShadow: mobileView === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
           >
             <LayoutGrid size={13} />
           </button>
           <button
             onClick={() => setMobileView('map')}
-            className={`flex items-center justify-center gap-1 rounded-md text-xs font-bold px-2.5 h-7 transition-colors ${
-              mobileView === 'map' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'
-            }`}
-            style={{ background: mobileView === 'map' ? '#fff' : 'none', border: 'none', cursor: 'pointer' }}
+            style={{ background: mobileView === 'map' ? '#fff' : 'none', border: 'none', cursor: 'pointer', borderRadius: 6, width: 28, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', color: mobileView === 'map' ? '#2563eb' : '#94a3b8', boxShadow: mobileView === 'map' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
           >
             <MapIcon size={13} />
           </button>
@@ -572,10 +568,10 @@ export default function MapModule({ toggleSidebar }) {
           onClick={handleSync}
           disabled={loading}
           title="Sync with Excel"
-          className={`flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 transition-all shrink-0 ${loading ? 'animate-spin' : ''}`}
+          className={`flex items-center justify-center w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-500 transition-all shrink-0 ${loading ? 'animate-spin' : ''}`}
           style={{ background: 'none', border: 'none', cursor: 'pointer' }}
         >
-          <RefreshCw size={16} />
+          <RefreshCw size={15} />
         </button>
       </div>
 

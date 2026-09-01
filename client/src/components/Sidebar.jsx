@@ -39,9 +39,9 @@ export default function Sidebar({ isOpen, sidebarClass, toggleSidebar }) {
   const handleLogout = () => { logout(); navigate('/login'); };
 
   return (
-    <aside className={`sidebar ${sidebarClass || (!isOpen ? 'closed' : '')}`}>
+    <aside className={`sidebar ${sidebarClass || (!isOpen ? 'closed' : '')}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       {/* Logo */}
-      <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: '1px solid rgba(255,255,255,0.08)' }}>
             <img src={logo} alt="Play Time" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -57,7 +57,7 @@ export default function Sidebar({ isOpen, sidebarClass, toggleSidebar }) {
       </div>
 
       {/* User info */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
             width: 32, height: 32, borderRadius: '50%',
@@ -76,7 +76,7 @@ export default function Sidebar({ isOpen, sidebarClass, toggleSidebar }) {
       </div>
 
       {/* Nav items */}
-      <nav style={{ padding: '12px 0', flex: 1 }}>
+      <nav style={{ padding: '12px 0', flex: 1, overflowY: 'auto', minHeight: 0 }}>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, padding: '8px 20px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
           Navigation
         </div>
@@ -93,7 +93,7 @@ export default function Sidebar({ isOpen, sidebarClass, toggleSidebar }) {
       </nav>
 
       {/* Logout */}
-      <div style={{ padding: '16px 10px', borderTop: '1px solid var(--border)' }}>
+      <div style={{ padding: '16px 10px', borderTop: '1px solid var(--border)', flexShrink: 0, marginTop: 'auto' }}>
         <button onClick={handleLogout} className="sidebar-item" style={{ width: '100%', border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444' }}>
           <LogOut size={18} />
           Sign Out

@@ -115,7 +115,7 @@ export default function Navbar({ title = 'Dashboard', toggleSidebar, isSidebarOp
             <RefreshCw size={18} />
           </button>
 
-          <button className="navbar-btn-circle" onClick={toggleTheme}>
+          <button className="navbar-btn-circle desktop-only" onClick={toggleTheme}>
             {isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
@@ -143,8 +143,11 @@ export default function Navbar({ title = 'Dashboard', toggleSidebar, isSidebarOp
             {/* Dropdown */}
             {showNotifDropdown && (
               <div style={{
-                position: 'absolute', right: 0, top: 48,
-                width: 320, maxHeight: 420, overflowY: 'auto',
+                position: 'fixed',
+                right: 8,
+                top: 64,
+                width: 'min(320px, calc(100vw - 16px))',
+                maxHeight: 420, overflowY: 'auto',
                 background: 'var(--bg-card)', border: '1px solid var(--border)',
                 borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
                 zIndex: 99999

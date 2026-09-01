@@ -876,25 +876,31 @@ export default function MapModule({ toggleSidebar }) {
 
       {/* Add Lead Modal */}
       {leadTarget && (
-        <div style={{ position:'fixed', inset:0, zIndex:99999, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'flex-end', justifyContent:'center', padding:0 }} onClick={closeAddLead}>
+        <div style={{ position:'fixed', inset:0, zIndex:99999, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:'16px 12px' }} onClick={closeAddLead}>
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background:'#fff', width:'100%', maxWidth:560, maxHeight:'92vh', display:'flex', flexDirection:'column', borderRadius:'20px 20px 0 0', overflow:'hidden', animation:'modalSlideIn 0.25s cubic-bezier(0.4,0,0.2,1)' }}
+            style={{ background:'#fff', width:'100%', maxWidth:520, maxHeight:'92vh', display:'flex', flexDirection:'column', borderRadius:20, overflow:'hidden', animation:'modalSlideIn 0.25s cubic-bezier(0.4,0,0.2,1)' }}
           >
-            {/* Header */}
-            <div style={{ background:'linear-gradient(135deg,#1e40af,#2563eb)', padding:'16px 18px', flexShrink:0 }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <div style={{ width:36, height:36, borderRadius:10, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    <Target size={18} color="#fff" />
-                  </div>
-                  <div>
-                    <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.12em', color:'rgba(255,255,255,0.7)' }}>Field Visit Lead</div>
-                    <div style={{ fontSize:15, fontWeight:900, color:'#fff', lineHeight:1.2 }}>Create Lead</div>
-                  </div>
+            {/* Header with action buttons */}
+            <div style={{ background:'linear-gradient(135deg,#1e40af,#2563eb)', padding:'14px 16px', flexShrink:0 }}>
+              {/* Top row: title + Cancel + Create */}
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+                <div style={{ width:34, height:34, borderRadius:10, background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <Target size={17} color="#fff" />
                 </div>
-                <button onClick={closeAddLead} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:8, width:30, height:30, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-                  <X size={15} color="#fff" />
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.12em', color:'rgba(255,255,255,0.7)' }}>Field Visit Lead</div>
+                  <div style={{ fontSize:14, fontWeight:900, color:'#fff', lineHeight:1.2 }}>Create Lead</div>
+                </div>
+                {/* Action buttons in header */}
+                <button onClick={closeAddLead}
+                  style={{ height:34, padding:'0 14px', borderRadius:8, border:'1.5px solid rgba(255,255,255,0.35)', background:'rgba(255,255,255,0.1)', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', flexShrink:0 }}>
+                  Cancel
+                </button>
+                <button onClick={handleAddLead} disabled={submitting}
+                  style={{ height:34, padding:'0 14px', borderRadius:8, border:'none', background:'#fff', color:'#1e40af', fontSize:12, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:6, flexShrink:0, opacity:submitting?0.7:1 }}>
+                  {submitting ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} strokeWidth={2.5} />}
+                  {submitting ? 'Saving...' : 'Create'}
                 </button>
               </div>
               {/* Location strip */}
@@ -978,18 +984,6 @@ export default function MapModule({ toggleSidebar }) {
               </div>
             </div>
 
-            {/* Footer */}
-            <div style={{ padding:'12px 18px', borderTop:'1px solid #f1f5f9', display:'flex', gap:10, flexShrink:0, background:'#fafafa' }}>
-              <button onClick={closeAddLead}
-                style={{ flex:1, height:44, borderRadius:12, border:'1.5px solid #e2e8f0', background:'#fff', color:'#64748b', fontSize:13, fontWeight:700, cursor:'pointer' }}>
-                Cancel
-              </button>
-              <button onClick={handleAddLead} disabled={submitting}
-                style={{ flex:2, height:44, borderRadius:12, border:'none', background:'linear-gradient(135deg,#1e40af,#2563eb)', color:'#fff', fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, opacity:submitting?0.7:1 }}>
-                {submitting ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} strokeWidth={2.5} />}
-                {submitting ? 'Creating...' : 'Create Lead'}
-              </button>
-            </div>
           </div>
         </div>
       )}

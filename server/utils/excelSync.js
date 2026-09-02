@@ -67,6 +67,11 @@ const syncExcelToDB = async () => {
 
     console.log(`[ExcelSync] Total rows: ${allRows.length}, After dedup: ${uniqueRows.length}`);
 
+    // Assign a global unique R.No starting at 11110001 (overrides per-district Excel serial)
+    uniqueRows.forEach((r, i) => {
+      r.sno = String(11110001 + i);
+    });
+
     // Ensure name fallback
     uniqueRows.forEach(r => {
       if (!r.sportsPlaceName) {

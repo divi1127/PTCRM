@@ -65,10 +65,13 @@ export default function DataModule() {
         (item.district && item.district.toLowerCase().includes(q)) ||
         (item.phone && String(item.phone).toLowerCase().includes(q)) ||
         (item.sno && String(item.sno).toLowerCase().includes(q)) ||
+        (item.rno && String(item.rno).toLowerCase().includes(q)) ||
         (item.displayAddress && item.displayAddress.toLowerCase().includes(q))
       );
     }
-    return filtered;
+    /* Arrange by R.No (11110001, 11110002, ...) */
+    const toNum = v => { const n = parseInt(v, 10); return isNaN(n) ? Number.MAX_SAFE_INTEGER : n; };
+    return filtered.slice().sort((a, b) => toNum(a.sno) - toNum(b.sno));
   }, [data, search, filterDistrict, filterCategory]);
 
   const openAddLead = (item) => {

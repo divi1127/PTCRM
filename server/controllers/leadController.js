@@ -68,6 +68,14 @@ const createLead = async (req, res) => {
     if (!body.assignedTo) body.assignedTo = req.user._id;
     body.createdBy = req.user._id;
 
+    // Auto-assign a unique S.No (1, 2, 3 ... n) for every new lead
+    const snoAgg = await Lead.aggregate([
+      { $match: { sno: { $type: 'string', $ne: '' }, sno: { $regex: /^[0-9]+$/ } } },
+      { $group: { _id: null, max: { $max: { $toLong: '$sno' } } } }
+    ]).catch(() => []);
+    const nextSno = (snoAgg[0] && snoAgg[0].max ? Number(snoAgg[0].max) : 0) + 1;
+    body.sno = String(nextSno);
+
     // Check for duplicate lead by sportsPlaceId or phone / sno
     let existing = null;
     if (body.sportsPlaceId) {
@@ -278,7 +286,7 @@ const getAllLocations = async (req, res) => {
     const [locations, existingLeads] = await Promise.all([
       SportsPlace.find({})
         .select('name district address phone category sno contactAvailability source googleMapsLink sourceField isVisited visitedBy visitedByName visitedAt location')
-        .sort({ district: 1, name: 1 })
+        .sort({ sno: 1, district: 1 })
         .lean(),
       Lead.find({})
         .select('sportsPlaceId name sportsPlaceName phone status contactPerson contactRole assignedTo createdAt')

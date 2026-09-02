@@ -6,7 +6,7 @@ const leadSchema = new mongoose.Schema({
   email: { type: String, lowercase: true },
 
   sportsPlaceId: { type: mongoose.Schema.Types.ObjectId, ref: 'SportsPlace', index: true },
-  sno:   { type: String, trim: true }, // Serial number from Excel
+  sno:   { type: String, trim: true }, // Auto-generated unique S.No (1, 2, 3 ... n)
   sportsPlaceName: { type: String, trim: true },
   district:        { type: String, trim: true, index: true },
   category:        { type: String, trim: true },

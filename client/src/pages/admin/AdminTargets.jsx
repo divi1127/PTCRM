@@ -11,11 +11,11 @@ const EMPTY_FORM = {
   district: '', selectedPlaces: []
 };
 
-/* Build a map of { _id → '11110001'-style rNo } from all locations */
+/* Fetch the R.No straight from the Data Module (SportsPlace.sno, e.g. '11110001') */
 const buildRnoMap = (locations) => {
   const map = {};
   locations.forEach((item, idx) => {
-    map[item._id] = String(11110001 + idx);
+    map[item._id] = item.sno || String(11110001 + idx);
   });
   return map;
 };
@@ -83,8 +83,8 @@ export default function AdminTargets() {
       /* Ensure map is built */
       const map = await ensureRnoMap();
       const { data } = await API.get(`/leads/places/${encodeURIComponent(district)}`);
-      /* Attach computed rNo to each place */
-      const enriched = (data || []).map(p => ({ ...p, computedRno: map[p._id] || p.sno || '' }));
+      /* Attach R.No from the Data Module's own sno */
+      const enriched = (data || []).map(p => ({ ...p, computedRno: p.sno || map[p._id] || '' }));
       setDistrictPlaces(enriched);
       /* Auto-select up to form.value places */
       const autoSelected = enriched.slice(0, Number(form.value)).map(p => ({

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
@@ -121,6 +121,9 @@ export default function AdminLeads() {
   /* bulk */
   const [selectedIds, setSelectedIds] = useState([]);
 
+  /* map list fetch (same data as the GIS Map / Data Module) */
+  const [mapQuery, setMapQuery] = useState('');
+
   /* delete-all confirm */
   const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -148,13 +151,16 @@ export default function AdminLeads() {
   useEffect(() => { fetchLeads(); }, [filterStatus, filterDistrict, page]);
   useEffect(() => { setSelectedIds([]); }, [leads]);
 
-  /* fetch employees + districts on mount */
+  /* fetch employees + districts + map list on mount */
   useEffect(() => {
     API.get('/users?role=employee')
       .then(r => setEmployees(r.data || []))
       .catch(() => {});
     API.get('/leads/districts')
       .then(r => setDistricts(r.data || []))
+      .catch(() => {});
+    API.get('/leads/locations')
+      .then(r => setAllLocations(r.data || []))
       .catch(() => {});
   }, []);
 
@@ -236,6 +242,36 @@ export default function AdminLeads() {
 
   const handleQuickFetch = () => handleAutoFetch(fetchSNo);
 
+  /* ── fetch from map list ─────────────────────────────────── */
+  const mapMatches = useMemo(() => {
+    const q = mapQuery.trim().toLowerCase();
+    if (!q) return [];
+    return (allLocations || [])
+      .filter(m =>
+        (m.sno && String(m.sno).toLowerCase().includes(q)) ||
+        (m.name && m.name.toLowerCase().includes(q)) ||
+        (m.district && m.district.toLowerCase().includes(q))
+      )
+      .slice(0, 30);
+  }, [mapQuery, allLocations]);
+
+  const pickFromMap = (m) => {
+    setSelectedDistrict(m.district || '');
+    setSelectedPlaceId(m._id || '');
+    setForm(f => ({
+      ...f,
+      name:            m.name || '',
+      sportsPlaceName: m.name || '',
+      phone:           m.phone || '',
+      category:        m.category || '',
+      district:        m.district || '',
+      sno:             m.sno || '',
+      location:        { address: m.displayAddress || m.location?.address || m.address || m.name || '' },
+      contactAvailability: m.contactAvailability || 'Yes',
+    }));
+    setMapQuery('');
+  };
+
   /* ── open / close modal ──────────────────────────────────── */
   const openAdd = () => {
     setEditLead(null);
@@ -244,6 +280,7 @@ export default function AdminLeads() {
     setSelectedPlaceId('');
     setPlaces([]);
     setFetchSNo('');
+    setMapQuery('');
     setIsManualEntry(false);
     setShowModal(true);
   };
@@ -282,6 +319,7 @@ export default function AdminLeads() {
     setSelectedDistrict('');
     setSelectedPlaceId('');
     setPlaces([]);
+    setMapQuery('');
   };
 
   /* ── submit ──────────────────────────────────────────────── */
@@ -680,6 +718,37 @@ export default function AdminLeads() {
                     {placesLoading ? '...' : 'Fetch'}
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* Fetch from Map List (same data as GIS Map) */}
+            {!editLead && (
+              <div style={{ background: 'rgba(56,189,248,0.04)', border: '1px solid rgba(56,189,248,0.15)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                <p style={{ fontSize: 13, color: '#38bdf8', fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center' }}>
+                  🗺️ Fetch from Map List
+                </p>
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+                  <input className="form-input" style={{ paddingLeft: 34 }}
+                    value={mapQuery}
+                    onChange={e => setMapQuery(e.target.value)}
+                    placeholder="Search map list — R.No, name or district…"
+                  />
+                </div>
+                {mapMatches.length > 0 && (
+                  <div style={{ maxHeight: 180, overflowY: 'auto', marginTop: 10, border: '1px solid var(--border)', borderRadius: 10, padding: 6 }}>
+                    {mapMatches.map(m => (
+                      <button key={m._id} type="button" onClick={() => pickFromMap(m)}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', padding: '8px 10px', borderRadius: 8, cursor: 'pointer', background: 'transparent', border: 'none', color: 'inherit', transition: 'background 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.1)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+                        <span style={{ flexShrink: 0, background: 'rgba(173,255,47,0.1)', color: '#adff2f', padding: '1px 7px', borderRadius: 5, fontSize: 11, fontWeight: 700 }}>{m.sno || '—'}</span>
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+                        <span style={{ flexShrink: 0, fontSize: 11, color: 'var(--text-muted)' }}>{m.district || ''}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

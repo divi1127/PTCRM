@@ -24,6 +24,7 @@ const navItems = {
   employee: [
     { to: '/employee/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/employee/leads',     icon: Target,          label: 'My Leads' },
+    { to: '/employee/map',       icon: MapPin,          label: 'Location Map' },
     { to: '/employee/attendance',icon: Calendar,        label: 'Attendance' },
     { to: '/employee/meetings',  icon: Calendar,        label: 'My Meetings' },
     { to: '/employee/targets',   icon: Trophy,          label: 'My Targets' },

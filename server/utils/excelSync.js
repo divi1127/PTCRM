@@ -29,6 +29,8 @@ const normalizeRow = (r, districtName) => {
 
 const syncExcelToDB = async () => {
   const candidates = [
+    path.join(__dirname, '../../Tamilnadu_Sports_Datas_Consolidate.xlsx'),
+    path.join(__dirname, '../Tamilnadu_Sports_Datas_Consolidate.xlsx'),
     path.join(__dirname, '../../TamilNadu_Sports_Facilities_Consolidated (1).xlsx'),
     path.join(__dirname, '../TamilNadu_Sports_Facilities_Consolidated (1).xlsx'),
     path.join(__dirname, '../../TamilNadu_Sports_Facilities_Combined_Deduplicated.xlsx'),

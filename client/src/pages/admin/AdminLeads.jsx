@@ -55,7 +55,7 @@ const EMPTY_FORM = {
   location: { address: '' },
   status: 'New Lead', leadType: 'Offline',
   contactAvailability: 'Yes',
-  assignedTo: '', notes: '',
+  assignedTo: '', notes: '', clientRequirement: '',
   source: 'field', followUpDate: '',
   date: new Date().toISOString().slice(0, 10),
 };
@@ -301,6 +301,7 @@ export default function AdminLeads() {
       contactAvailability: lead.contactAvailability || 'Yes',
       assignedTo:      lead.assignedTo?._id || '',
       notes:           lead.notes || '',
+      clientRequirement: lead.clientRequirement || '',
       source:          lead.source || 'field',
       followUpDate:    lead.followUpDate ? lead.followUpDate.slice(0, 10) : '',
       date:            lead.createdAt ? lead.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
@@ -513,8 +514,18 @@ export default function AdminLeads() {
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{lead.phone}</span>
                     </div>
                     {lead.location?.address && (
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {lead.location.address}
+                      </div>
+                    )}
+                    {lead.clientRequirement && (
+                      <div style={{ fontSize: 11, color: '#fbbf24', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <strong>Req:</strong> {lead.clientRequirement}
+                      </div>
+                    )}
+                    {lead.notes && (
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <strong>Notes:</strong> {lead.notes}
                       </div>
                     )}
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
@@ -544,6 +555,8 @@ export default function AdminLeads() {
                   <th>Category</th>
                   <th>Contact</th>
                   <th>Address</th>
+                  <th>Requirement</th>
+                  <th>Notes</th>
                   <th>Avail.</th>
                   <th>Status</th>
                   <th>Assigned</th>
@@ -552,7 +565,7 @@ export default function AdminLeads() {
               </thead>
               <tbody>
                 {leads.length === 0 ? (
-                  <tr><td colSpan={10} style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>
+                  <tr><td colSpan={12} style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>
                     <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
                     No leads found. Click <strong style={{ color: '#adff2f' }}>+ Add Lead</strong> to create one.
                   </td></tr>
@@ -602,6 +615,28 @@ export default function AdminLeads() {
                         }}
                       >
                         {lead.location?.address || '—'}
+                      </td>
+                      <td
+                        title={lead.clientRequirement || ''}
+                        style={{
+                          fontSize: 12, color: '#fbbf24',
+                          maxWidth: 140, overflow: 'hidden',
+                          textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          cursor: lead.clientRequirement ? 'help' : 'default'
+                        }}
+                      >
+                        {lead.clientRequirement || '—'}
+                      </td>
+                      <td
+                        title={lead.notes || ''}
+                        style={{
+                          fontSize: 12, color: '#94a3b8',
+                          maxWidth: 140, overflow: 'hidden',
+                          textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          cursor: lead.notes ? 'help' : 'default'
+                        }}
+                      >
+                        {lead.notes || '—'}
                       </td>
                       <td>
                         <span style={{
@@ -854,6 +889,14 @@ export default function AdminLeads() {
                   <label className="form-label">Follow Up Date</label>
                   <input type="date" className="form-input" value={form.followUpDate}
                     onChange={e => setForm(f => ({ ...f, followUpDate: e.target.value }))} />
+                </div>
+
+                {/* Client Requirement */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">Requirement</label>
+                  <input className="form-input" value={form.clientRequirement}
+                    onChange={e => setForm(f => ({ ...f, clientRequirement: e.target.value }))}
+                    placeholder="Client requirement / interest…" />
                 </div>
 
                 {/* Notes */}

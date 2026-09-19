@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
-import { Phone, Search, MapPin, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Phone, Search, MapPin, ChevronLeft, ChevronRight, Filter, Eye, X } from 'lucide-react';
 import WhatsAppButton from '../../components/WhatsAppButton';
 
 const STATUS_LIST = ['New Lead', 'Follow-up', 'Demo Scheduled (Online)', 'Demo Scheduled (Offline)', 'Converted', 'Closed'];
@@ -57,6 +57,18 @@ export default function EmployeeLeads() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
+  const [viewLead, setViewLead] = useState(null);
+
+  useEffect(() => {
+    if (viewLead) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [viewLead]);
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -194,7 +206,14 @@ export default function EmployeeLeads() {
                         </span>
                       </td>
                       <td>
-                        <WhatsAppButton phone={lead.phone} name={lead.sportsPlaceName || lead.name} />
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <WhatsAppButton phone={lead.phone} name={lead.sportsPlaceName || lead.name} />
+                          <button onClick={() => setViewLead(lead)}
+                            title="View"
+                            style={{ background: 'rgba(56,189,248,0.15)', border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: '#38bdf8', display:'flex', alignItems:'center' }}>
+                            <Eye size={13} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -219,6 +238,63 @@ export default function EmployeeLeads() {
             disabled={page === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>
             <ChevronRight size={16} />
           </button>
+        </div>
+      )}
+      {/* ── VIEW LEAD MODAL ── */}
+      {viewLead && (
+        <div className="modal-overlay" onClick={() => setViewLead(null)}>
+          <div className="modal-window" style={{ maxWidth: 600 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-primary)' }}>Lead Details</h3>
+              <button onClick={() => setViewLead(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}><X size={20} /></button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Name / Place:</span>
+                <span style={{ fontWeight: 600 }}>{viewLead.sportsPlaceName || viewLead.name}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>R.No:</span>
+                <span style={{ fontWeight: 600 }}>{viewLead.sno || '—'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Contact:</span>
+                <span style={{ fontWeight: 600 }}>{viewLead.phone}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Email:</span>
+                <span style={{ fontWeight: 600 }}>{viewLead.email || '—'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>District:</span>
+                <span style={{ fontWeight: 600 }}>{viewLead.district || '—'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Category:</span>
+                <span style={{ fontWeight: 600 }}>{viewLead.category || '—'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Address:</span>
+                <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{viewLead.location?.address || '—'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Status:</span>
+                <span style={{ fontWeight: 600 }}>{getStatusLabel(viewLead)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Follow Up:</span>
+                <span style={{ fontWeight: 600 }}>{viewLead.followUpDate ? new Date(viewLead.followUpDate).toLocaleDateString('en-IN') : '—'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Requirement:</span>
+                <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{viewLead.clientRequirement || '—'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Notes:</span>
+                <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{viewLead.notes || '—'}</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </Layout>

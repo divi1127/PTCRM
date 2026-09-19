@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, Calendar,
-  MapPin, BarChart2, Settings, LogOut, Trophy, Target, Zap, FileSpreadsheet, X
+  MapPin, BarChart2, Settings, LogOut, Trophy, Target, Zap, FileSpreadsheet, X, Clock, AlertTriangle
 } from 'lucide-react';
 import logo from '../assets/logo.jpeg';
 
@@ -35,9 +36,13 @@ const navItems = {
 export default function Sidebar({ isOpen, sidebarClass, toggleSidebar }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [showConfirmLogout, setShowConfirmLogout] = useState(false);
   const items = navItems[user?.role] || navItems.employee;
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <aside className={`sidebar ${sidebarClass || (!isOpen ? 'closed' : '')}`} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -57,7 +62,7 @@ export default function Sidebar({ isOpen, sidebarClass, toggleSidebar }) {
         </button>
       </div>
 
-      {/* User info + Logout */}
+      {/* User info */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
@@ -73,13 +78,6 @@ export default function Sidebar({ isOpen, sidebarClass, toggleSidebar }) {
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
             <div style={{ fontSize: 11, color: 'var(--primary)', textTransform: 'capitalize', fontWeight: 500 }}>{user?.role}</div>
           </div>
-          <button
-            onClick={handleLogout}
-            title="Sign Out"
-            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, flexShrink: 0 }}
-          >
-            <LogOut size={15} /> Sign Out
-          </button>
         </div>
       </div>
 
@@ -99,6 +97,76 @@ export default function Sidebar({ isOpen, sidebarClass, toggleSidebar }) {
           </NavLink>
         ))}
       </nav>
+
+      {/* Sidebar Footer: Daily Auto-Logout Info & Optional Manual Logout */}
+      <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border)', background: 'rgba(0,0,0,0.12)', flexShrink: 0 }}>
+        {/* Daily Auto-Logout Status Info */}
+        <div style={{
+          background: 'rgba(16, 185, 129, 0.08)',
+          border: '1px solid rgba(16, 185, 129, 0.25)',
+          borderRadius: 8,
+          padding: '8px 10px',
+          marginBottom: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 3
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#10b981', fontSize: 11, fontWeight: 700 }}>
+            <Clock size={13} />
+            <span>Daily Auto-Logout: 6:00 PM</span>
+          </div>
+          <span style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.3 }}>
+            System logs out automatically at 6:00 PM. No login allowed after 6:00 PM until 6:00 AM.
+          </span>
+        </div>
+
+        {/* Confirmation State or Manual Logout Button */}
+        {showConfirmLogout ? (
+          <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 8, padding: 10, textAlign: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#f87171', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+              <AlertTriangle size={14} /> Confirm manual sign out?
+            </div>
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+              <button
+                onClick={handleLogout}
+                style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+              >
+                Yes, Sign Out
+              </button>
+              <button
+                onClick={() => setShowConfirmLogout(false)}
+                style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 10px', fontSize: 12, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowConfirmLogout(true)}
+            title="Optional Manual Logout"
+            style={{
+              width: '100%',
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: 8,
+              padding: '9px 12px',
+              cursor: 'pointer',
+              color: '#ef4444',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              fontSize: 12,
+              fontWeight: 700,
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <LogOut size={15} />
+            <span>Manual Logout (Optional)</span>
+          </button>
+        )}
+      </div>
     </aside>
   );
 }

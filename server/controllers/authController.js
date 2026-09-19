@@ -1,21 +1,6 @@
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 
-// Helper: Check if current time in IST is after 6:00 PM (18:00) or before 6:00 AM
-const isAfterWorkHours = () => {
-  try {
-    const istTimeStr = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour12: false });
-    const [hours] = istTimeStr.split(':').map(Number);
-    // Work hours are 6:00 AM to 6:00 PM (18:00). After 18:00 (6:00 PM) until 06:00 AM, auto-logout is active and logins are blocked.
-    return hours >= 18 || hours < 6;
-  } catch {
-    // Fallback using UTC+5:30 offset
-    const now = new Date();
-    const istHours = (now.getUTCHours() + 5 + Math.floor((now.getUTCMinutes() + 30) / 60)) % 24;
-    return istHours >= 18 || istHours < 6;
-  }
-};
-
 // @desc Register new user
 const registerUser = async (req, res) => {
   try {
@@ -45,16 +30,6 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Daily auto-logout check: After 6:00 PM, employee login is prohibited until 6:00 AM
-    if (user.role?.toLowerCase() !== 'admin') {
-      if (isAfterWorkHours()) {
-        return res.status(403).json({
-          message: 'Work hours ended. Daily auto-logout took place at 6:00 PM. Login is restricted until 6:00 AM tomorrow.',
-          isAfterHours: true
-        });
-      }
-    }
-
     res.json({
       _id: user._id,
       name: user.name,
@@ -73,14 +48,6 @@ const loginUser = async (req, res) => {
 
 // @desc Get current user profile
 const getMe = async (req, res) => {
-  if (req.user && req.user.role?.toLowerCase() !== 'admin') {
-    if (isAfterWorkHours()) {
-      return res.status(403).json({
-        message: 'Daily shift ended at 6:00 PM. Auto-logout is active.',
-        isAfterHours: true
-      });
-    }
-  }
   res.json(req.user);
 };
 
@@ -101,16 +68,6 @@ const faceLogin = async (req, res) => {
     if (!matched) return res.status(401).json({ message: 'Face not recognised. Try email/password.' });
     if (!matched.isActive) return res.status(403).json({ message: 'Account is inactive.' });
 
-    // Daily auto-logout check: After 6:00 PM, employee login is prohibited
-    if (matched.role?.toLowerCase() !== 'admin') {
-      if (isAfterWorkHours()) {
-        return res.status(403).json({
-          message: 'Work hours ended. Daily auto-logout took place at 6:00 PM. Login is restricted until 6:00 AM tomorrow.',
-          isAfterHours: true
-        });
-      }
-    }
-
     res.json({
       _id: matched._id, name: matched.name, email: matched.email,
       role: matched.role, profilePhoto: matched.profilePhoto,
@@ -121,4 +78,4 @@ const faceLogin = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, getMe, faceLogin, isAfterWorkHours };
+module.exports = { registerUser, loginUser, getMe, faceLogin };

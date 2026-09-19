@@ -3,13 +3,12 @@ const User = require('../models/User');
 const logActivity = require('../utils/activityLogger');
 const { notifyAllAdmins } = require('../utils/notifHelper');
 
-// Helper: Auto-close past or after-6pm attendance records that missed checkout
+// Helper: Auto-close past days attendance records that missed checkout (e.g. yesterday 18/09)
 const autoCloseAttendanceRecords = async (employeeId = null) => {
   try {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    // 1. Close past days (prior to today, e.g. yesterday 18/09)
     const pastQuery = {
       date: { $lt: todayStart },
       'checkIn.time': { $exists: true, $ne: null },
@@ -23,40 +22,9 @@ const autoCloseAttendanceRecords = async (employeeId = null) => {
       closeTime.setHours(18, 0, 0, 0);
       record.checkOut = {
         time: closeTime,
-        location: record.checkIn?.location || { address: 'Auto Checkout at 6:00 PM' }
+        location: record.checkIn?.location || { address: 'Manual / System Closed' }
       };
-      record.notes = (record.notes ? record.notes + ' | ' : '') + 'Daily shift auto-logout at 6:00 PM';
       await record.save();
-    }
-
-    // 2. If current IST time is after 6:00 PM today, auto-close today's unclosed attendance too
-    let hours = 0;
-    try {
-      const istTimeStr = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour12: false });
-      hours = Number(istTimeStr.split(':')[0]);
-    } catch {
-      const now = new Date();
-      hours = (now.getUTCHours() + 5 + Math.floor((now.getUTCMinutes() + 30) / 60)) % 24;
-    }
-
-    if (hours >= 18) {
-      const todayQuery = {
-        date: { $gte: todayStart, $lt: new Date(todayStart.getTime() + 86400000) },
-        'checkIn.time': { $exists: true, $ne: null },
-        $or: [{ 'checkOut.time': { $exists: false } }, { 'checkOut.time': null }]
-      };
-      if (employeeId) todayQuery.employee = employeeId;
-
-      const unclosedToday = await Attendance.find(todayQuery);
-      for (const record of unclosedToday) {
-        const closeTime = new Date();
-        record.checkOut = {
-          time: closeTime,
-          location: record.checkIn?.location || { address: 'Daily auto-logout at 6:00 PM' }
-        };
-        record.notes = (record.notes ? record.notes + ' | ' : '') + 'Daily shift auto-logout at 6:00 PM';
-        await record.save();
-      }
     }
   } catch (err) {
     console.error('Error in autoCloseAttendanceRecords:', err);

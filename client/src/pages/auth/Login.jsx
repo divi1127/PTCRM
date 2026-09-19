@@ -2,11 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../api/axios';
-import { Mail, Lock, Eye, EyeOff, AlertCircle, Camera, CheckCircle, Clock, Moon } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle, Camera, CheckCircle } from 'lucide-react';
 import logo from '../../assets/logo.jpeg';
 
 export default function Login() {
-  const { login, autoLogoutNotice, clearAutoLogoutNotice, isAfterWorkHours } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPw, setShowPw] = useState(false);
@@ -15,8 +15,6 @@ export default function Login() {
   const [attendanceStatus, setAttendanceStatus] = useState(''); // 'capturing' | 'done' | 'skipped'
   const videoRef = useRef(null);
   const streamRef = useRef(null);
-
-  const afterHours = isAfterWorkHours ? isAfterWorkHours() : false;
 
   /* ── Auto-capture selfie + GPS then post attendance ─────── */
   const captureAndCheckIn = async () => {
@@ -71,14 +69,7 @@ export default function Login() {
   };
 
   const doLogin = async (email, password) => {
-    setError('');
-    // Client-side block for employees trying to log in after 6:00 PM
-    if (afterHours && !email.toLowerCase().includes('admin')) {
-      setError('Work hours ended. Daily auto-logout took place at 6:00 PM. Employee login is restricted until 6:00 AM tomorrow.');
-      return;
-    }
-
-    setLoading(true);
+    setError(''); setLoading(true);
     try {
       const user = await login(email, password);
       // Auto-capture attendance for employees
@@ -88,7 +79,7 @@ export default function Login() {
       if (user.role?.toLowerCase() === 'admin') navigate('/admin/dashboard');
       else navigate('/employee/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Login failed. Check credentials.');
+      setError(err.response?.data?.message || 'Login failed. Check credentials.');
     } finally { setLoading(false); }
   };
 
@@ -124,51 +115,6 @@ export default function Login() {
         <div className="glass" style={{ padding: 32 }}>
           <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Welcome back 👋</h2>
           <p style={{ color: '#64748b', fontSize: 13, marginBottom: 16 }}>Sign in — attendance captured automatically</p>
-
-          {/* Auto-logout notification banner if user was kicked out at 6:00 PM */}
-          {autoLogoutNotice && (
-            <div style={{
-              background: 'rgba(245, 158, 11, 0.12)',
-              border: '1px solid rgba(245, 158, 11, 0.35)',
-              borderRadius: 10,
-              padding: '12px 14px',
-              marginBottom: 16,
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 10
-            }}>
-              <Clock size={18} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b', marginBottom: 2 }}>Daily Shift Ended</div>
-                <div style={{ fontSize: 12, color: '#fcd34d', lineHeight: 1.4 }}>{autoLogoutNotice}</div>
-              </div>
-              <button
-                onClick={clearAutoLogoutNotice}
-                style={{ background: 'none', border: 'none', color: '#f59e0b', cursor: 'pointer', fontSize: 13, fontWeight: 700, padding: 0 }}
-              >
-                ✕
-              </button>
-            </div>
-          )}
-
-          {/* After-hours Notice Banner */}
-          {afterHours && (
-            <div style={{
-              background: 'rgba(99, 102, 241, 0.12)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
-              borderRadius: 10,
-              padding: '10px 14px',
-              marginBottom: 16,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10
-            }}>
-              <Moon size={16} color="#818cf8" style={{ flexShrink: 0 }} />
-              <div style={{ fontSize: 12, color: '#c7d2fe', lineHeight: 1.4 }}>
-                <strong>Daily Auto-Logout Active (6:00 PM – 6:00 AM)</strong>: Employee logins are disabled until 6:00 AM tomorrow. Admin login remains available.
-              </div>
-            </div>
-          )}
 
           {/* Quick Demo Access - moved to top */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>

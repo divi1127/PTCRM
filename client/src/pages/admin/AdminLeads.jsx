@@ -518,6 +518,11 @@ export default function AdminLeads() {
                         {lead.location.address}
                       </div>
                     )}
+                    {lead.followUpDate && (
+                      <div style={{ fontSize: 11, color: '#fbbf24', marginBottom: 4 }}>
+                        <strong>Follow Up:</strong> {new Date(lead.followUpDate).toLocaleDateString('en-IN')}
+                      </div>
+                    )}
                     {lead.clientRequirement && (
                       <div style={{ fontSize: 11, color: '#fbbf24', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         <strong>Req:</strong> {lead.clientRequirement}
@@ -558,6 +563,7 @@ export default function AdminLeads() {
                   <th>Requirement</th>
                   <th>Notes</th>
                   <th>Avail.</th>
+                  <th>Follow Up</th>
                   <th>Status</th>
                   <th>Assigned</th>
                   <th>Actions</th>
@@ -646,6 +652,9 @@ export default function AdminLeads() {
                         }}>
                           {lead.contactAvailability || 'Yes'}
                         </span>
+                      </td>
+                      <td style={{ fontSize: 12, color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                        {lead.followUpDate ? new Date(lead.followUpDate).toLocaleDateString('en-IN') : '—'}
                       </td>
                       <td>
                         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 22, padding: '0 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', background: sc.bg, color: sc.color, lineHeight: 1, verticalAlign: 'middle' }} title={statusLabel}>

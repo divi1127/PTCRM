@@ -146,6 +146,7 @@ export default function EmployeeLeads() {
                    <th style={{ maxWidth: 140 }}>Sports Place</th>
                    <th style={{ maxWidth: 100 }}>District</th>
                    <th style={{ maxWidth: 110 }}>Contact</th>
+                   <th style={{ maxWidth: 90 }}>Follow Up</th>
                    <th style={{ maxWidth: 90 }}>Status</th>
                    <th style={{ maxWidth: 80 }}>Actions</th>
                  </tr>
@@ -183,6 +184,9 @@ export default function EmployeeLeads() {
                             <MapPin size={10} /> {lead.location.address}
                           </div>
                         )}
+                      </td>
+                      <td style={{ fontSize: 12, color: '#94a3b8' }}>
+                        {lead.followUpDate ? new Date(lead.followUpDate).toLocaleDateString('en-IN') : '—'}
                       </td>
                       <td>
                         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 22, padding: '0 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color, lineHeight: 1, whiteSpace: 'nowrap' }}>

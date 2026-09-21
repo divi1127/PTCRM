@@ -786,9 +786,9 @@ export default function AdminLeads() {
 
       {/* ── ADD / EDIT LEAD MODAL ── */}
       {showModal && (
-        <div className="modal-overlay" onClick={closeModal}>
+        <div className="modal-overlay add-lead-overlay" onClick={closeModal}>
           <div
-            className="modal-window"
+            className="modal-window add-lead-modal"
             style={{ maxWidth: 820, display: 'flex', flexDirection: 'column', maxHeight: '92vh', padding: 0, overflow: 'hidden' }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -808,8 +808,8 @@ export default function AdminLeads() {
             </div>
 
             {/* ── Scrollable Form Body ── */}
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-              <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px' }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+              <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 28px' }}>
 
                 {/* Search from map list */}
                 {!editLead && (

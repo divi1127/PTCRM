@@ -243,7 +243,7 @@ export default function EmployeeLeads() {
       {/* ── VIEW LEAD MODAL ── */}
       {viewLead && (
         <div className="modal-overlay" onClick={() => setViewLead(null)}>
-          <div className="modal-window" style={{ maxWidth: 600 }} onClick={e => e.stopPropagation()}>
+          <div className="modal-window" style={{ maxWidth: 600, padding: '28px 32px', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h3 style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-primary)' }}>Lead Details</h3>
               <button onClick={() => setViewLead(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}><X size={20} /></button>

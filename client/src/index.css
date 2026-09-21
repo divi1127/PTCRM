@@ -945,18 +945,22 @@ body.modal-open { overflow: hidden !important; }
   .filter-bar .filter-actions { display: flex; gap: 8px; width: 100%; }
   .filter-bar .filter-count { order: -1; margin-bottom: 4px; font-weight: 700; }
 
-  /* Modal: centered on mobile */
-  .modal-overlay { padding: 12px; align-items: center; }
+  /* Modal: scrollable on mobile */
+  .modal-overlay { padding: 10px; align-items: flex-start; overflow-y: auto; }
   .modal-box {
     border-radius: var(--radius-xl);
-    max-height: 95vh;
+    max-height: none;
     max-width: 100%;
     padding: 20px 14px;
+    margin: auto;
   }
   .modal-window {
     border-radius: var(--radius-xl);
     max-width: 100%;
+    max-height: none;
+    overflow-y: visible;
     padding: 20px 14px;
+    margin: auto;
   }
 
 /* Table: horizontal scroll + tighter layout on mobile */

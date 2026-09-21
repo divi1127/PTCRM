@@ -988,8 +988,15 @@ export default function AdminLeads() {
                 </div>
               </div>
 
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
+              {/* Actions — sticky at bottom */}
+              <div style={{
+                display: 'flex', gap: 10, marginTop: 22,
+                position: 'sticky', bottom: 0,
+                background: 'var(--bg-dark)',
+                paddingTop: 12, paddingBottom: 4,
+                borderTop: '1px solid var(--border)',
+                zIndex: 10,
+              }}>
                 <button type="submit" className="btn-primary" disabled={saving}
                   style={{ flex: 1, justifyContent: 'center', opacity: saving ? 0.7 : 1 }}>
                   {saving ? 'Saving…' : editLead ? 'Update Lead' : '✓ Create Lead'}

@@ -706,10 +706,11 @@ body.modal-open { overflow: hidden !important; }
   animation: overlayFadeIn 0.2s ease;
 }
 
-/* The lead form is taller than most dialogs — centered on desktop, full-screen on mobile */
+/* Keep the lead form anchored at the top; only its body scrolls. */
 .add-lead-overlay {
-  align-items: center;
+  align-items: flex-start;
   padding: 16px;
+  overflow-y: auto;
 }
 
 .add-lead-modal {
@@ -967,12 +968,12 @@ body.modal-open { overflow: hidden !important; }
     align-items: flex-end;
   }
   .add-lead-overlay {
-    align-items: flex-end;
-    padding: 0;
+    align-items: flex-start;
+    padding: 8px 0 0;
   }
   .add-lead-modal {
-    border-radius: 16px 16px 0 0 !important;
-    height: 95dvh !important;
+    border-radius: 16px !important;
+    height: calc(100dvh - 16px) !important;
     max-width: 100% !important;
     width: 100% !important;
   }

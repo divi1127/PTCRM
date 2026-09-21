@@ -921,6 +921,11 @@ export default function AdminLeads() {
               {/* All fields grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }} className="modal-form-grid">
                 <div>
+                  <label className="form-label">R.No</label>
+                  <input className="form-input" value={form.sno}
+                    onChange={e => setForm(f => ({ ...f, sno: e.target.value }))} />
+                </div>
+                <div>
                   <label className="form-label">Name / Place Name *</label>
                   <input className="form-input" value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value, sportsPlaceName: e.target.value }))} required />

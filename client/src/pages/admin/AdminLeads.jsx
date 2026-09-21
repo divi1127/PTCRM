@@ -979,7 +979,7 @@ export default function AdminLeads() {
               </div>
 
               {/* ── Sticky Footer ── */}
-              <div style={{
+              <div className="add-lead-footer" style={{
                 display: 'flex', gap: 10,
                 padding: '12px 28px 20px',
                 borderTop: '1px solid var(--border)',

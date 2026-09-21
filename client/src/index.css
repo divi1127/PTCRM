@@ -718,7 +718,14 @@ body.modal-open { overflow: hidden !important; }
 
 .add-lead-modal {
   max-height: 100% !important;
+  height: 100% !important;
   margin: 0 auto;
+}
+
+.add-lead-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 @keyframes overlayFadeIn {
   from { opacity: 0; }

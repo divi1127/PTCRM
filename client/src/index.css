@@ -717,7 +717,7 @@ body.modal-open { overflow: hidden !important; }
 }
 
 .add-lead-modal {
-  max-height: calc(100dvh - 32px) !important;
+  max-height: 100% !important;
   margin: 0 auto;
 }
 @keyframes overlayFadeIn {
@@ -969,7 +969,7 @@ body.modal-open { overflow: hidden !important; }
   }
   .add-lead-overlay {
     align-items: flex-start;
-    padding: max(8px, env(safe-area-inset-top)) 0 8px;
+    padding: max(8px, env(safe-area-inset-top)) 0 calc(var(--bottom-nav-height) + 8px);
   }
   .modal-box {
     border-radius: 16px 16px 0 0;
@@ -990,7 +990,7 @@ body.modal-open { overflow: hidden !important; }
     margin: 0;
   }
   .add-lead-modal {
-    max-height: calc(100dvh - max(8px, env(safe-area-inset-top)) - 8px) !important;
+    max-height: 100% !important;
     border-radius: 16px;
   }
 

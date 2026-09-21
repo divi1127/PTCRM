@@ -789,213 +789,202 @@ export default function AdminLeads() {
         <div className="modal-overlay" onClick={closeModal}>
           <div
             className="modal-window"
-            style={{ maxWidth: 820 }}
+            style={{ maxWidth: 820, display: 'flex', flexDirection: 'column', maxHeight: '92vh', padding: 0, overflow: 'hidden' }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal header */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 20,
-              }}
-            >
-              <h3 style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-primary)' }}>
+            {/* ── Pinned Header ── */}
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '20px 28px 16px',
+              borderBottom: '1px solid var(--border)',
+              flexShrink: 0,
+            }}>
+              <h3 style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-primary)', margin: 0 }}>
                 {editLead ? '✏️ Edit Lead' : '➕ Add New Lead'}
               </h3>
-              <button
-                onClick={closeModal}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-primary)',
-                }}
-              >
+              <button onClick={closeModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', padding: 4 }}>
                 <X size={20} />
               </button>
             </div>
 
+            {/* ── Scrollable Form Body ── */}
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px' }}>
 
-            {/* Quick Fetch (only on Add) */}
-            {!editLead && (
-              <div style={{ background: 'rgba(173,255,47,0.04)', border: '1px solid rgba(173,255,47,0.15)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
-                <p style={{ fontSize: 13, color: '#adff2f', fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center' }}>
-                  ⚡ Quick Fetch from Database
-                </p>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                  <div style={{ flex: 1, minWidth: 200 }}>
-                    <label className="form-label">Enter R.No (e.g. 11110001)</label>
-                    <input className="form-input" value={fetchSNo} onChange={e => setFetchSNo(e.target.value)} placeholder="11110001" />
-                  </div>
-                  <button type="button" className="btn-primary" onClick={handleQuickFetch} disabled={placesLoading} style={{ padding: '9px 20px', height: 42 }}>
-                    {placesLoading ? '...' : 'Fetch'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Fetch from Map List (same data as GIS Map) */}
-            {!editLead && (
-              <div style={{ background: 'rgba(56,189,248,0.04)', border: '1px solid rgba(56,189,248,0.15)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
-                <p style={{ fontSize: 13, color: '#38bdf8', fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center' }}>
-                  🗺️ Fetch from Map List
-                </p>
-                <div style={{ position: 'relative' }}>
-                  <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
-                  <input className="form-input" style={{ paddingLeft: 34 }}
-                    value={mapQuery}
-                    onChange={e => setMapQuery(e.target.value)}
-                    placeholder="Search map list — R.No, name or district…"
-                  />
-                </div>
-                {mapMatches.length > 0 && (
-                  <div style={{ maxHeight: 180, overflowY: 'auto', marginTop: 10, border: '1px solid var(--border)', borderRadius: 10, padding: 6 }}>
-                    {mapMatches.map(m => (
-                      <button key={m._id} type="button" onClick={() => pickFromMap(m)}
-                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', padding: '8px 10px', borderRadius: 8, cursor: 'pointer', background: 'transparent', border: 'none', color: 'inherit', transition: 'background 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(56,189,248,0.1)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-                        <span style={{ flexShrink: 0, background: 'rgba(173,255,47,0.1)', color: '#adff2f', padding: '1px 7px', borderRadius: 5, fontSize: 11, fontWeight: 700 }}>{m.sno || '—'}</span>
-                        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-                        <span style={{ flexShrink: 0, fontSize: 11, color: 'var(--text-muted)' }}>{m.district || ''}</span>
-                      </button>
-                    ))}
+                {/* Search from map list */}
+                {!editLead && (
+                  <div style={{ marginBottom: 18 }}>
+                    <label className="form-label">🔍 Search from Database</label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        className="form-input"
+                        placeholder="Type name, district or R.No to search…"
+                        value={mapQuery}
+                        onChange={e => setMapQuery(e.target.value)}
+                        autoComplete="off"
+                      />
+                      {mapMatches.length > 0 && (
+                        <div style={{
+                          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
+                          background: 'var(--bg-card)', border: '1px solid var(--border)',
+                          borderRadius: 10, maxHeight: 220, overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                        }}>
+                          {mapMatches.map(m => (
+                            <div key={m._id || m.sno}
+                              onClick={() => pickFromMap(m)}
+                              style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontSize: 13 }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(173,255,47,0.07)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <span style={{ fontWeight: 600 }}>{m.name}</span>
+                              <span style={{ color: 'var(--text-muted)', marginLeft: 8, fontSize: 11 }}>{m.district} · #{m.sno}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
-              </div>
-            )}
 
-            <form onSubmit={handleSubmit}>
-              <div className="grid-cols-2">
-                {/* R.No */}
-                <div className="mobile-col-span-2">
-                  <label className="form-label">R.No</label>
-                  <input 
-                    className="form-input" 
-                    value={form.sno}
-                    onChange={e => setForm(f => ({ ...f, sno: e.target.value }))}
-                    onBlur={(e) => {
-                      const val = e.target.value.trim();
-                      if (val && !editLead) {
-                        setFetchSNo(val);
-                        handleAutoFetch(val);
-                      }
-                    }}
-                    placeholder="R.No" 
-                  />
+                {/* R.No quick fetch */}
+                {!editLead && (
+                  <div style={{ marginBottom: 18 }}>
+                    <label className="form-label">R.No Quick Fetch</label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input className="form-input" placeholder="Enter R.No" value={fetchSNo}
+                        onChange={e => setFetchSNo(e.target.value)}
+                        onBlur={() => fetchSNo && handleAutoFetch(fetchSNo)}
+                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleQuickFetch())}
+                      />
+                      <button type="button" className="btn-secondary" onClick={handleQuickFetch}
+                        style={{ whiteSpace: 'nowrap', padding: '0 16px' }} disabled={placesLoading}>
+                        {placesLoading ? '…' : 'Fetch'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* District + Place selectors (add mode) */}
+                {!editLead && !isManualEntry && (
+                  <div className="modal-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 18 }}>
+                    <div>
+                      <label className="form-label">District</label>
+                      <select className="form-input" value={selectedDistrict} onChange={e => handleDistrictChange(e.target.value)}>
+                        <option value="">Select District</option>
+                        {districts.map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="form-label">Sports Place {placesLoading && '…'}</label>
+                      <select className="form-input" value={selectedPlaceId} onChange={e => handlePlaceChange(e.target.value)} disabled={!selectedDistrict}>
+                        <option value="">Select Place</option>
+                        {places.map(p => <option key={p._id} value={p._id}>{p.sportsPlaceName || p.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* Manual entry toggle */}
+                {!editLead && (
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text-muted)' }}>
+                      <input type="checkbox" checked={isManualEntry} onChange={e => setIsManualEntry(e.target.checked)} />
+                      Enter details manually
+                    </label>
+                  </div>
+                )}
+
+                {/* Core fields */}
+                <div className="modal-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                  <div>
+                    <label className="form-label">Name / Place Name *</label>
+                    <input className="form-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value, sportsPlaceName: e.target.value }))} required />
+                  </div>
+                  <div>
+                    <label className="form-label">Phone *</label>
+                    <input className="form-input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} required />
+                  </div>
+                  <div>
+                    <label className="form-label">Email</label>
+                    <input className="form-input" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="form-label">District</label>
+                    <input className="form-input" value={form.district} onChange={e => setForm(f => ({ ...f, district: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="form-label">Category</label>
+                    <select className="form-input" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+                      <option value="">Select Category</option>
+                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">Contact Available</label>
+                    <select className="form-input" value={form.contactAvailability} onChange={e => setForm(f => ({ ...f, contactAvailability: e.target.value }))}>
+                      {CONTACT_AVAIL.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">Status</label>
+                    <select className="form-input" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                      {STATUS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">Lead Type</label>
+                    <select className="form-input" value={form.leadType} onChange={e => setForm(f => ({ ...f, leadType: e.target.value }))}>
+                      <option value="Offline">Offline</option>
+                      <option value="Online">Online</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">Assigned To</label>
+                    <select className="form-input" value={form.assignedTo} onChange={e => setForm(f => ({ ...f, assignedTo: e.target.value }))}>
+                      <option value="">Unassigned</option>
+                      {employees.map(emp => <option key={emp._id} value={emp._id}>{emp.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">Follow Up Date</label>
+                    <input className="form-input" type="date" value={form.followUpDate} onChange={e => setForm(f => ({ ...f, followUpDate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="form-label">Source</label>
+                    <select className="form-input" value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))}>
+                      <option value="field">Field</option>
+                      <option value="online">Online</option>
+                      <option value="referral">Referral</option>
+                      <option value="import">Import</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">Date</label>
+                    <input className="form-input" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                  </div>
                 </div>
 
-                {/* Date */}
-                <div className="mobile-col-span-2">
-                  <label className="form-label">Date</label>
-                  <input type="date" className="form-input" value={form.date}
-                    onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-                </div>
-
-                {/* District */}
-                <div className="mobile-col-span-2">
-                  <label className="form-label">District *</label>
-                  <select className="form-input" value={form.district}
-                    onChange={e => setForm(f => ({ ...f, district: e.target.value }))} required>
-                    <option value="">Select</option>
-                    {districts.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-
-                {/* Category */}
-                <div className="mobile-col-span-2">
-                  <label className="form-label">Category</label>
-                  <select className="form-input" value={form.category}
-                    onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-                    <option value="">Select</option>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-
-                {/* Name */}
-                <div style={{ gridColumn: '1 / -1', marginBottom: 4 }}>
-                  <label className="form-label">Name *</label>
-                  <input className="form-input" value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value, sportsPlaceName: e.target.value }))}
-                    required placeholder="Enter name" />
-                </div>
-
-                {/* Address — directly below Name, minimal gap */}
-                <div style={{ gridColumn: '1 / -1', marginTop: 0 }}>
+                <div style={{ marginBottom: 14 }}>
                   <label className="form-label">Address</label>
-                  <input
-                    className="form-input"
-                    value={form.location.address}
-                    onChange={e => setForm(f => ({ ...f, location: { address: e.target.value } }))}
-                    placeholder="Full address"
-                    title={form.location.address}
-                    style={{ cursor: form.location.address ? 'help' : 'text' }}
-                  />
+                  <input className="form-input" value={form.location?.address || ''} onChange={e => setForm(f => ({ ...f, location: { address: e.target.value } }))} />
                 </div>
-
-                {/* Phone */}
-                <div className="mobile-col-span-2">
-                  <label className="form-label">Phone</label>
-                  <input className="form-input" value={form.phone}
-                    onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                    placeholder="Phone number" />
+                <div style={{ marginBottom: 14 }}>
+                  <label className="form-label">Client Requirement</label>
+                  <textarea className="form-input" rows={2} value={form.clientRequirement} onChange={e => setForm(f => ({ ...f, clientRequirement: e.target.value }))} style={{ resize: 'vertical' }} />
                 </div>
-
-                {/* Assign Employee */}
-                <div className="mobile-col-span-2">
-                  <label className="form-label">Assign Employee</label>
-                  <select className="form-input" value={form.assignedTo}
-                    onChange={e => setForm(f => ({ ...f, assignedTo: e.target.value }))}>
-                    <option value="">Unassigned</option>
-                    {employees.map(emp => (
-                      <option key={emp._id} value={emp._id}>{emp.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Status */}
-                <div className="mobile-col-span-2">
-                  <label className="form-label">Status</label>
-                  <select className="form-input" value={form.status}
-                    onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-                    {STATUS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-
-                {/* Follow Up Date */}
-                <div className="mobile-col-span-2">
-                  <label className="form-label">Follow Up Date</label>
-                  <input type="date" className="form-input" value={form.followUpDate}
-                    onChange={e => setForm(f => ({ ...f, followUpDate: e.target.value }))} />
-                </div>
-
-                {/* Client Requirement */}
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label">Requirement</label>
-                  <input className="form-input" value={form.clientRequirement}
-                    onChange={e => setForm(f => ({ ...f, clientRequirement: e.target.value }))}
-                    placeholder="Client requirement / interest…" />
-                </div>
-
-                {/* Notes */}
-                <div style={{ gridColumn: '1 / -1' }}>
+                <div style={{ marginBottom: 4 }}>
                   <label className="form-label">Notes</label>
-                  <textarea className="form-input" rows={3} value={form.notes}
-                    onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                    placeholder="Enter notes..." style={{ resize: 'vertical' }} />
+                  <textarea className="form-input" rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} style={{ resize: 'vertical' }} />
                 </div>
               </div>
 
-              {/* Actions — sticky at bottom */}
+              {/* ── Sticky Footer ── */}
               <div style={{
-                display: 'flex', gap: 10, marginTop: 22,
-                position: 'sticky', bottom: 0,
-                background: 'var(--bg-dark)',
-                paddingTop: 12, paddingBottom: 4,
+                display: 'flex', gap: 10,
+                padding: '12px 28px 20px',
                 borderTop: '1px solid var(--border)',
-                zIndex: 10,
+                flexShrink: 0,
+                background: 'var(--bg-dark)',
               }}>
                 <button type="submit" className="btn-primary" disabled={saving}
                   style={{ flex: 1, justifyContent: 'center', opacity: saving ? 0.7 : 1 }}>

@@ -718,7 +718,7 @@ body.modal-open { overflow: hidden !important; }
 
 .add-lead-modal {
   max-height: 100% !important;
-  height: 100% !important;
+  height: calc(100% - 32px) !important;
   margin: 0 auto;
 }
 
@@ -998,6 +998,7 @@ body.modal-open { overflow: hidden !important; }
   }
   .add-lead-modal {
     max-height: 100% !important;
+    height: calc(100% - max(8px, env(safe-area-inset-top)) - var(--bottom-nav-height) - 8px) !important;
     border-radius: 16px;
   }
 

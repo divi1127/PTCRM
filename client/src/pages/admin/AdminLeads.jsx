@@ -811,10 +811,10 @@ export default function AdminLeads() {
               flexShrink: 0, gap: 10,
             }}>
               <h3 style={{ fontWeight: 700, fontSize: 17, color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap' }}>
-                {editLead ? '✏️ Edit Lead' : '➕ Add Lead'}
+                {editLead ? '✏️ Edit Lead' : '➕ Add New Lead'}
               </h3>
               <div style={{ display: 'flex', gap: 8, flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-                <button type="button" onClick={handleSubmit} disabled={saving}
+                <button type="submit" form="lead-form" disabled={saving}
                   style={{
                     background: 'var(--primary)', color: '#000', border: 'none',
                     borderRadius: 10, padding: '8px 20px', fontWeight: 700,
@@ -841,7 +841,7 @@ export default function AdminLeads() {
             <form
               id="lead-form"
               onSubmit={handleSubmit}
-              style={{ flex: 1, overflowY: 'auto', padding: 'clamp(16px, 3vw, 24px)' }}
+              style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 'clamp(16px, 3vw, 24px)' }}
             >
               {/* Search from database */}
               {!editLead && (

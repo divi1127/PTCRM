@@ -9,7 +9,11 @@ import {
 import WhatsAppButton from '../../components/WhatsAppButton';
 
 /* ─── constants ──────────────────────────────────────────────── */
-const STATUS_LIST = ['New Lead', 'Follow Up', 'Demo Online', 'Demo Offline', 'Conversion', 'Closed'];
+const STATUS_LIST = [
+  'New Lead', 'Follow Up', 'Demo Online', 'Demo Offline', 'Conversion', 'Closed',
+  'Rejected', 'Contacted', 'Wrong Number', 'Not Attend', 'Already have Web/App', 'Already added in Playspot',
+  'Interested', 'Not Interested'
+];
 const CONTACT_AVAIL = ['Yes', 'No'];
 
 const STATUS_COLOR = {
@@ -19,6 +23,14 @@ const STATUS_COLOR = {
   'Demo Offline':{ bg: 'rgba(56,189,248,0.12)',  color: '#38bdf8' },
   'Conversion':  { bg: 'rgba(16,185,129,0.12)',  color: '#10b981' },
   'Closed':      { bg: 'rgba(239,68,68,0.12)',   color: '#f87171' },
+  'Rejected':    { bg: 'rgba(239,68,68,0.12)',   color: '#ef4444' },
+  'Contacted':   { bg: 'rgba(14,165,233,0.12)',  color: '#0ea5e9' },
+  'Wrong Number':{ bg: 'rgba(156,163,175,0.12)', color: '#9ca3af' },
+  'Not Attend':  { bg: 'rgba(249,115,22,0.12)',  color: '#f97316' },
+  'Already have Web/App': { bg: 'rgba(168,85,247,0.12)', color: '#a855f7' },
+  'Already added in Playspot': { bg: 'rgba(20,184,166,0.12)', color: '#14b8a6' },
+  'Interested':  { bg: 'rgba(34,197,94,0.12)',   color: '#22c55e' },
+  'Not Interested': { bg: 'rgba(100,116,139,0.12)', color: '#64748b' }
 };
 
 const normalizeStatus = (status) => {
@@ -57,7 +69,7 @@ const EMPTY_FORM = {
   contactAvailability: 'Yes',
   assignedTo: '', notes: '', clientRequirement: '',
   source: 'field', followUpDate: '',
-  date: new Date().toISOString().slice(0, 10),
+  date: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
 };
 
 const CATEGORIES = [
@@ -342,13 +354,7 @@ export default function AdminLeads() {
       } else if (payload.status === 'Demo Offline') {
         payload.leadType = 'Offline';
         payload.status = 'Demo Scheduled';
-      } else if (payload.status === 'Follow Up') {
-        payload.status = 'Follow Up';
-      } else if (payload.status === 'Conversion') {
-        payload.status = 'Conversion';
-      } else if (payload.status === 'Closed') {
-        payload.status = 'Closed';
-      } else {
+      } else if (!STATUS_LIST.includes(payload.status) && payload.status !== 'Converted') {
         payload.status = 'New Lead';
       }
 
@@ -424,8 +430,6 @@ export default function AdminLeads() {
           </p>
         </div>
         <div className="page-header-actions">
-          <button className="btn-secondary" title="Sync Excel" onClick={handleSync}><RefreshCw size={16} /></button>
-          <button className="btn-secondary" title="Import" onClick={() => navigate('/admin/import')}><FileSpreadsheet size={16} /></button>
           <button className="btn-secondary" title="Export" onClick={() => exportCSV(leads)}><Download size={16} /></button>
           <button className="btn-danger" title="Delete All" style={{ padding: '8px 12px' }}
             onClick={() => { setDeleteConfirmText(''); setShowDeleteAll(true); }}>
@@ -595,6 +599,9 @@ export default function AdminLeads() {
                         }}
                       >
                         {lead.sportsPlaceName || lead.name}
+                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                          {lead.createdAt ? new Date(lead.createdAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+                        </div>
                       </td>
                       <td>
                         {lead.district ? (
@@ -994,7 +1001,7 @@ export default function AdminLeads() {
                 </div>
                 <div>
                   <label className="form-label">Date</label>
-                  <input className="form-input" type="date" value={form.date}
+                  <input className="form-input" type="datetime-local" value={form.date}
                     onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
                 </div>
               </div>

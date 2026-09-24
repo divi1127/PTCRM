@@ -4,7 +4,11 @@ import API from '../../api/axios';
 import { Phone, Search, MapPin, ChevronLeft, ChevronRight, Filter, Eye, X } from 'lucide-react';
 import WhatsAppButton from '../../components/WhatsAppButton';
 
-const STATUS_LIST = ['New Lead', 'Follow-up', 'Demo Scheduled (Online)', 'Demo Scheduled (Offline)', 'Converted', 'Closed'];
+const STATUS_LIST = [
+  'New Lead', 'Follow-up', 'Demo Scheduled (Online)', 'Demo Scheduled (Offline)', 'Converted', 'Closed',
+  'Rejected', 'Contacted', 'Wrong Number', 'Not Attend', 'Already have Web/App', 'Already added in Playspot',
+  'Interested', 'Not Interested'
+];
 
 const statusColors = {
   'New Lead':             { bg: 'rgba(173,255,47,0.1)',  color: '#adff2f' },
@@ -13,6 +17,14 @@ const statusColors = {
   'Demo Scheduled (Offline)': { bg: 'rgba(99,102,241,0.1)', color: '#818cf8' },
   'Converted':            { bg: 'rgba(34,197,94,0.1)',  color: '#22c55e' },
   'Closed':               { bg: 'rgba(239,68,68,0.1)',  color: '#f87171' },
+  'Rejected':    { bg: 'rgba(239,68,68,0.12)',   color: '#ef4444' },
+  'Contacted':   { bg: 'rgba(14,165,233,0.12)',  color: '#0ea5e9' },
+  'Wrong Number':{ bg: 'rgba(156,163,175,0.12)', color: '#9ca3af' },
+  'Not Attend':  { bg: 'rgba(249,115,22,0.12)',  color: '#f97316' },
+  'Already have Web/App': { bg: 'rgba(168,85,247,0.12)', color: '#a855f7' },
+  'Already added in Playspot': { bg: 'rgba(20,184,166,0.12)', color: '#14b8a6' },
+  'Interested':  { bg: 'rgba(34,197,94,0.12)',   color: '#22c55e' },
+  'Not Interested': { bg: 'rgba(100,116,139,0.12)', color: '#64748b' }
 };
 
 const normalizeStatus = (status) => {
@@ -174,7 +186,7 @@ export default function EmployeeLeads() {
                       <td>
                         <div style={{ fontWeight: 600, fontSize: 14 }}>{lead.sportsPlaceName || lead.name}</div>
                         <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                          {new Date(lead.createdAt).toLocaleDateString('en-IN')}
+                          {new Date(lead.createdAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
                         </div>
                       </td>
                       <td>

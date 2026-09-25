@@ -398,6 +398,27 @@ body.modal-open { overflow: hidden !important; }
   border-radius: var(--radius-lg);
 }
 
+.leads-table-scroll {
+  max-height: min(72vh, 760px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.leads-table-scroll .data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-card);
+}
+
+.leads-table-scroll > .pagination {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  background: var(--bg-card);
+}
+
 /* ── Sidebar ─────────────────────────────────────────────────── */
 .sidebar {
   width: var(--sidebar-width);

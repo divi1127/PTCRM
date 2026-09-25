@@ -62,6 +62,7 @@ const leadSchema = new mongoose.Schema({
   },
 
   importBatch:     { type: String, index: true },
+  entryAt:         { type: Date, default: Date.now, index: true },
   followUpDate:    { type: Date },
   lastFollowUpDate:{ type: Date },
   convertedAt:     { type: Date },

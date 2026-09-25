@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
 import { Phone, Search, MapPin, ChevronLeft, ChevronRight, Filter, Eye, X } from 'lucide-react';
@@ -62,14 +62,26 @@ const matchStatusFilter = (lead, filter) => {
 
 const PAGE_SIZE = 30;
 
+const getEntryValue = (lead) => lead?.entryAt || lead?.createdAt || null;
+
+const formatEntryDateTime = (value) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+};
+
 export default function EmployeeLeads() {
   const [leads, setLeads] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
   const [viewLead, setViewLead] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const listRequestRef = useRef(0);
+  const detailRequestRef = useRef(0);
 
   useEffect(() => {
     if (viewLead) {
@@ -82,29 +94,64 @@ export default function EmployeeLeads() {
     };
   }, [viewLead]);
 
-  const fetchLeads = async () => {
+  const fetchLeads = useCallback(async (requestedPage = page) => {
+    const requestId = ++listRequestRef.current;
     setLoading(true);
     try {
-      const params = { page, limit: PAGE_SIZE };
+      const params = { page: requestedPage, limit: PAGE_SIZE };
       if (filterStatus) params.status = getFilterQueryStatus(filterStatus);
-      if (search) params.search = search;
+      if (appliedSearch) params.search = appliedSearch;
       const { data } = await API.get('/leads', { params });
+      if (requestId !== listRequestRef.current) return;
       const list = Array.isArray(data) ? data : (data.leads || []);
       setLeads(list);
       setTotal(Array.isArray(data) ? list.length : (data.total || list.length));
     } catch (err) {
-      console.error(err);
+      if (requestId === listRequestRef.current) console.error(err);
     } finally {
-      setLoading(false);
+      if (requestId === listRequestRef.current) setLoading(false);
     }
-  };
+  }, [filterStatus, appliedSearch, page]);
 
-  useEffect(() => { fetchLeads(); }, [filterStatus, page]);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => fetchLeads(page), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchLeads, page]);
+
+  const applySearch = () => {
+    const nextSearch = search.trim();
+    setPage(1);
+    if (nextSearch === appliedSearch) fetchLeads(1);
+    else setAppliedSearch(nextSearch);
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setPage(1);
-    fetchLeads();
+    applySearch();
+  };
+
+  const openView = async (lead) => {
+    const requestId = ++detailRequestRef.current;
+    setDetailLoading(true);
+    setViewLead(lead);
+    try {
+      const { data } = await API.get(`/leads/${lead._id}`);
+      if (requestId !== detailRequestRef.current) return;
+      setViewLead(data);
+    } catch (err) {
+      if (requestId === detailRequestRef.current) {
+        setViewLead(null);
+        alert(err.response?.data?.message || 'Failed to load lead details');
+      }
+    } finally {
+      if (requestId === detailRequestRef.current) setDetailLoading(false);
+    }
+  };
+
+  const closeView = () => {
+    detailRequestRef.current += 1;
+    setViewLead(null);
+    setDetailLoading(false);
   };
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -130,7 +177,7 @@ export default function EmployeeLeads() {
           <option value="">All Status</option>
           {STATUS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <button type="button" className="btn-secondary" style={{ padding: '10px 16px' }} onClick={() => { setPage(1); fetchLeads(); }}>
+        <button type="button" className="btn-secondary" style={{ padding: '10px 16px' }} onClick={applySearch}>
           <Filter size={14} /> Apply
         </button>
       </div>
@@ -142,7 +189,7 @@ export default function EmployeeLeads() {
           const col = statusColors[s] || {};
           const isActive = filterStatus === s;
           return (
-            <button key={s}
+            <button key={s} type="button"
               onClick={() => { setFilterStatus(isActive ? '' : s); setPage(1); }}
               style={{
                 background: isActive ? col.bg : 'var(--bg-surface)',
@@ -158,16 +205,17 @@ export default function EmployeeLeads() {
       </div>
 
       {/* Table */}
-      <div className="glass table-wrapper" style={{ marginBottom: 16 }}>
+      <div className="glass table-wrapper leads-table-scroll" style={{ marginBottom: 16 }}>
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
         ) : (
           <div>
-            <table className="data-table">
+            <table className="data-table" style={{ minWidth: 800 }}>
 <thead>
                  <tr>
                    <th style={{ maxWidth: 40 }}>#</th>
                    <th style={{ maxWidth: 140 }}>Sports Place</th>
+                  <th style={{ maxWidth: 120 }}>Entry Date/Time</th>
                    <th style={{ maxWidth: 100 }}>District</th>
                    <th style={{ maxWidth: 110 }}>Contact</th>
                    <th style={{ maxWidth: 90 }}>Follow Up</th>
@@ -177,7 +225,7 @@ export default function EmployeeLeads() {
                </thead>
               <tbody>
                 {leads.length === 0 ? (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>No leads assigned</td></tr>
+                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>No leads assigned</td></tr>
                 ) : leads.map((lead, i) => {
                   const sc = statusColors[lead.status] || statusColors['New Lead'];
                   return (
@@ -185,9 +233,9 @@ export default function EmployeeLeads() {
                       <td style={{ color: '#475569', fontSize: 12 }}>{(page - 1) * PAGE_SIZE + i + 1}</td>
                       <td>
                         <div style={{ fontWeight: 600, fontSize: 14 }}>{lead.sportsPlaceName || lead.name}</div>
-                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                          {new Date(lead.createdAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
-                        </div>
+                      </td>
+                      <td style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                        {formatEntryDateTime(getEntryValue(lead))}
                       </td>
                       <td>
                         {lead.district ? (
@@ -220,7 +268,7 @@ export default function EmployeeLeads() {
                       <td>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                           <WhatsAppButton phone={lead.phone} name={lead.sportsPlaceName || lead.name} />
-                          <button onClick={() => setViewLead(lead)}
+                          <button type="button" onClick={() => openView(lead)}
                             title="View"
                             style={{ background: 'rgba(56,189,248,0.15)', border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: '#38bdf8', display:'flex', alignItems:'center' }}>
                             <Eye size={13} />
@@ -254,13 +302,16 @@ export default function EmployeeLeads() {
       )}
       {/* ── VIEW LEAD MODAL ── */}
       {viewLead && (
-        <div className="modal-overlay" onClick={() => setViewLead(null)}>
+        <div className="modal-overlay" onClick={closeView}>
           <div className="modal-window" style={{ maxWidth: 600, padding: '28px 32px', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h3 style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-primary)' }}>Lead Details</h3>
-              <button onClick={() => setViewLead(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}><X size={20} /></button>
+              <button type="button" onClick={closeView} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}><X size={20} /></button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {detailLoading ? (
+              <div style={{ padding: 60, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Name / Place:</span>
                 <span style={{ fontWeight: 600 }}>{viewLead.sportsPlaceName || viewLead.name}</span>
@@ -268,6 +319,10 @@ export default function EmployeeLeads() {
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>R.No:</span>
                 <span style={{ fontWeight: 600 }}>{viewLead.sno || '—'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Entry Date/Time:</span>
+                <span style={{ fontWeight: 600 }}>{formatEntryDateTime(getEntryValue(viewLead))}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Contact:</span>
@@ -306,6 +361,7 @@ export default function EmployeeLeads() {
                 <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{viewLead.notes || '—'}</span>
               </div>
             </div>
+            )}
           </div>
         </div>
       )}

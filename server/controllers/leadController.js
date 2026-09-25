@@ -4,6 +4,34 @@ const SportsPlace = require('../models/SportsPlace');
 const logActivity = require('../utils/activityLogger');
 const { notify, notifyAllAdmins } = require('../utils/notifHelper');
 
+const normalizeEntryAt = (body) => {
+  const rawValue = body.entryAt ?? body.date;
+  if (rawValue === undefined || rawValue === null || rawValue === '') {
+    delete body.createdAt;
+    return;
+  }
+
+  const entryAt = new Date(rawValue);
+  if (Number.isNaN(entryAt.getTime())) {
+    throw new Error('Invalid entry date/time');
+  }
+
+  body.entryAt = entryAt;
+  delete body.date;
+  delete body.createdAt;
+};
+
+const withEntryAt = (lead) => ({
+  ...lead,
+  entryAt: lead.entryAt || lead.createdAt || null,
+});
+
+const canAccessLead = (user, lead) => {
+  if (!['employee', 'agent'].includes(user.role)) return true;
+  const assignedTo = lead.assignedTo?._id || lead.assignedTo;
+  return assignedTo?.toString() === user._id.toString();
+};
+
 /* ─────────────────────────────────────────────────────────
    GET /api/leads    — paginated, filtered, searchable
 ───────────────────────────────────────────────────────── */
@@ -42,17 +70,33 @@ const getLeads = async (req, res) => {
     const pageSize = Math.min(500, Math.max(1, parseInt(limit)));
     const skip     = (pageNum - 1) * pageSize;
 
-    const [leads, total] = await Promise.all([
+    const [leadDocuments, total] = await Promise.all([
       Lead.find(filter)
         .populate('assignedTo', 'name email phone')
-        .sort({ createdAt: -1 })
+        .sort({ entryAt: -1, createdAt: -1, _id: -1 })
         .skip(skip)
         .limit(pageSize)
         .lean(),
       Lead.countDocuments(filter),
     ]);
 
+    const leads = leadDocuments.map(withEntryAt);
     res.json({ leads, total, page: pageNum, pages: Math.ceil(total / pageSize), pageSize });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const getLeadById = async (req, res) => {
+  try {
+    const lead = await Lead.findById(req.params.id)
+      .populate('assignedTo', 'name email phone')
+      .lean();
+
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    if (!canAccessLead(req.user, lead)) return res.status(403).json({ message: 'Lead access denied' });
+
+    res.json(withEntryAt(lead));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -65,8 +109,13 @@ const createLead = async (req, res) => {
   try {
     const body = { ...req.body };
     if (!body.sportsPlaceName) body.sportsPlaceName = body.name;
-    if (!body.assignedTo) body.assignedTo = req.user._id;
-    if (body.date) body.createdAt = new Date(body.date);
+    if (body.assignedTo === '') body.assignedTo = null;
+    if (body.assignedTo === undefined) body.assignedTo = req.user._id;
+    try {
+      normalizeEntryAt(body);
+    } catch (err) {
+      return res.status(400).json({ message: err.message });
+    }
     body.createdBy = req.user._id;
 
     // Auto-assign a unique S.No (1, 2, 3 ... n) for every new lead
@@ -116,9 +165,16 @@ const createLead = async (req, res) => {
 const updateLead = async (req, res) => {
   try {
     const body = { ...req.body };
-    const prevLead = await Lead.findById(req.params.id).select('assignedTo').lean();
+    const prevLead = await Lead.findById(req.params.id).select('assignedTo entryAt createdAt').lean();
+    if (!prevLead) return res.status(404).json({ message: 'Lead not found' });
+    if (!canAccessLead(req.user, prevLead)) return res.status(403).json({ message: 'Lead access denied' });
     if (body.assignedTo === '') body.assignedTo = null;
-    if (body.date) body.createdAt = new Date(body.date);
+    try {
+      normalizeEntryAt(body);
+    } catch (err) {
+      return res.status(400).json({ message: err.message });
+    }
+    if (!body.entryAt) body.entryAt = prevLead.entryAt || prevLead.createdAt;
 
     const lead = await Lead.findByIdAndUpdate(
       req.params.id, body, { new: true, runValidators: true }
@@ -186,6 +242,7 @@ const convertLead = async (req, res) => {
   try {
     const lead = await Lead.findById(req.params.id);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    if (!canAccessLead(req.user, lead)) return res.status(403).json({ message: 'Lead access denied' });
     lead.status      = 'Converted';
     lead.convertedAt = new Date();
     await lead.save();
@@ -291,7 +348,7 @@ const getAllLocations = async (req, res) => {
         .sort({ sno: 1, district: 1 })
         .lean(),
       Lead.find({})
-        .select('sportsPlaceId name sportsPlaceName phone status contactPerson contactRole assignedTo createdAt')
+        .select('sportsPlaceId name sportsPlaceName phone status contactPerson contactRole assignedTo createdAt entryAt')
         .lean()
     ]);
 
@@ -313,7 +370,8 @@ const getAllLocations = async (req, res) => {
           _id: existing._id,
           status: existing.status,
           contactPerson: existing.contactPerson,
-          createdAt: existing.createdAt
+          createdAt: existing.createdAt,
+          entryAt: existing.entryAt || existing.createdAt || null
         } : null
       };
     }));
@@ -413,7 +471,7 @@ const getPlaceBySno = async (req, res) => {
 };
 
 module.exports = {
-  getLeads, createLead, updateLead, deleteLead, deleteAllLeads,
+  getLeads, getLeadById, createLead, updateLead, deleteLead, deleteAllLeads,
   convertLead, getLeadStats,
   getDistricts, getPlacesByDistrict, getAllLocations, markLocationVisited,
   bulkAssign, getPlaceBySno,

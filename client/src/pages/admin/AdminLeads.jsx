@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
 import {
-  Plus, Search, UserCheck, Trash2, Edit2, Phone, MapPin,
-  FileSpreadsheet, RefreshCw, Download, X, AlertTriangle, Eye
+  Plus, Search, UserCheck, Trash2, Edit2, Phone,
+  Download, X, AlertTriangle, Eye
 } from 'lucide-react';
 import WhatsAppButton from '../../components/WhatsAppButton';
 
@@ -60,7 +59,21 @@ const matchStatusFilter = (lead, filter) => {
   return getStatusLabel(lead) === filter;
 };
 
-const EMPTY_FORM = {
+const getEntryValue = (lead) => lead?.entryAt || lead?.createdAt || null;
+
+const toDateTimeLocalValue = (value) => {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) return '';
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+
+const formatEntryDateTime = (value) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+};
+
+const createEmptyForm = () => ({
   sno: '', name: '', phone: '', email: '',
   district: '', sportsPlaceName: '',
   category: '',
@@ -69,8 +82,28 @@ const EMPTY_FORM = {
   contactAvailability: 'Yes',
   assignedTo: '', notes: '', clientRequirement: '',
   source: 'field', followUpDate: '',
-  date: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
-};
+  entryAt: toDateTimeLocalValue(),
+});
+
+const formFromLead = (lead) => ({
+  sno:             lead.sno || '',
+  name:            lead.name || '',
+  phone:           lead.phone || '',
+  email:           lead.email || '',
+  district:        lead.district || '',
+  sportsPlaceName: lead.sportsPlaceName || '',
+  category:        lead.category || '',
+  location:        { address: lead.location?.address || '' },
+  status:          getStatusLabel(lead),
+  leadType:        lead.leadType || 'Offline',
+  contactAvailability: lead.contactAvailability || 'Yes',
+  assignedTo:      typeof lead.assignedTo === 'object' ? (lead.assignedTo?._id || '') : (lead.assignedTo || ''),
+  notes:           lead.notes || '',
+  clientRequirement: lead.clientRequirement || '',
+  source:          lead.source || 'field',
+  followUpDate:    lead.followUpDate ? String(lead.followUpDate).slice(0, 10) : '',
+  entryAt:         toDateTimeLocalValue(getEntryValue(lead)),
+});
 
 const CATEGORIES = [
   'Turf', 'Football', 'Cricket', 'Sport hub/club', 'Tennis', 'Hockey',
@@ -98,8 +131,6 @@ const exportCSV = (rows) => {
 };
 
 export default function AdminLeads() {
-  const navigate = useNavigate();
-
   /* data */
   const [leads, setLeads]         = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -109,6 +140,7 @@ export default function AdminLeads() {
 
   /* filters */
   const [search, setSearch]             = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDistrict, setFilterDistrict] = useState('');
 
@@ -122,7 +154,8 @@ export default function AdminLeads() {
   const [showModal, setShowModal]   = useState(false);
   const [editLead, setEditLead]     = useState(null);
   const [viewLead, setViewLead]     = useState(null);
-  const [form, setForm]             = useState(EMPTY_FORM);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [form, setForm]             = useState(createEmptyForm);
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [selectedPlaceId, setSelectedPlaceId]   = useState('');
   const [saving, setSaving]         = useState(false);
@@ -131,11 +164,10 @@ export default function AdminLeads() {
   const [fetchSNo, setFetchSNo] = useState('');
   const [allLocations, setAllLocations] = useState([]);
 
-  /* bulk */
-  const [selectedIds, setSelectedIds] = useState([]);
-
   /* map list fetch (same data as the GIS Map / Data Module) */
   const [mapQuery, setMapQuery] = useState('');
+  const listRequestRef = useRef(0);
+  const detailRequestRef = useRef(0);
 
   /* delete-all confirm */
   const [showDeleteAll, setShowDeleteAll] = useState(false);
@@ -143,26 +175,39 @@ export default function AdminLeads() {
   const [deleting, setDeleting] = useState(false);
 
   /* ── fetch leads ─────────────────────────────────────────── */
-  const fetchLeads = useCallback(async () => {
+  const fetchLeads = useCallback(async (requestedPage = page) => {
+    const requestId = ++listRequestRef.current;
     setLoading(true);
     try {
-      const params = { page, limit };
+      const params = { page: requestedPage, limit };
       if (filterStatus) {
         params.status = filterStatus.startsWith('Demo Scheduled') ? 'Demo Scheduled' : filterStatus;
       }
       if (filterDistrict) params.district = filterDistrict;
-      if (search)         params.search   = search;
+      if (appliedSearch) params.search = appliedSearch;
       const { data } = await API.get('/leads', { params });
+      if (requestId !== listRequestRef.current) return;
       const arr = Array.isArray(data) ? data : (data.leads || []);
       setLeads(arr);
       setTotalLeads(Array.isArray(data) ? arr.length : (data.total || arr.length));
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
-  }, [filterStatus, filterDistrict, search, page, limit]);
+    } catch (err) {
+      if (requestId === listRequestRef.current) console.error(err);
+    } finally {
+      if (requestId === listRequestRef.current) setLoading(false);
+    }
+  }, [filterStatus, filterDistrict, appliedSearch, page, limit]);
 
-  useEffect(() => { setPage(1); }, [filterStatus, filterDistrict]);
-  useEffect(() => { fetchLeads(); }, [filterStatus, filterDistrict, page]);
-  useEffect(() => { setSelectedIds([]); }, [leads]);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => fetchLeads(page), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchLeads, page]);
+
+  const applySearch = () => {
+    const nextSearch = search.trim();
+    setPage(1);
+    if (nextSearch === appliedSearch) fetchLeads(1);
+    else setAppliedSearch(nextSearch);
+  };
 
   /* fetch employees + districts + map list on mount */
   useEffect(() => {
@@ -287,8 +332,11 @@ export default function AdminLeads() {
 
   /* ── open / close modal ──────────────────────────────────── */
   const openAdd = () => {
+    detailRequestRef.current += 1;
     setEditLead(null);
-    setForm(EMPTY_FORM);
+    setViewLead(null);
+    setDetailLoading(false);
+    setForm(createEmptyForm());
     setSelectedDistrict('');
     setSelectedPlaceId('');
     setPlaces([]);
@@ -298,38 +346,63 @@ export default function AdminLeads() {
     setShowModal(true);
   };
 
-  const openEdit = (lead) => {
+  const openEdit = async (lead) => {
+    const requestId = ++detailRequestRef.current;
+    setDetailLoading(true);
     setEditLead(lead);
-    setForm({
-      sno:             lead.sno || '',
-      name:            lead.name || '',
-      phone:           lead.phone || '',
-      email:           lead.email || '',
-      district:        lead.district || '',
-      sportsPlaceName: lead.sportsPlaceName || '',
-      category:        lead.category || '',
-      location:        { address: lead.location?.address || '' },
-      status:          getStatusLabel(lead),
-      leadType:        lead.leadType || 'Offline',
-      contactAvailability: lead.contactAvailability || 'Yes',
-      assignedTo:      lead.assignedTo?._id || '',
-      notes:           lead.notes || '',
-      clientRequirement: lead.clientRequirement || '',
-      source:          lead.source || 'field',
-      followUpDate:    lead.followUpDate ? lead.followUpDate.slice(0, 10) : '',
-      date:            lead.createdAt ? lead.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
-    });
+    setForm(formFromLead(lead));
     setSelectedDistrict('');
     setSelectedPlaceId('');
     setPlaces([]);
     setIsManualEntry(true);
     setShowModal(true);
+
+    try {
+      const { data } = await API.get(`/leads/${lead._id}`);
+      if (requestId !== detailRequestRef.current) return;
+      setEditLead(data);
+      setForm(formFromLead(data));
+    } catch (err) {
+      if (requestId === detailRequestRef.current) {
+        setShowModal(false);
+        setEditLead(null);
+        alert(err.response?.data?.message || 'Failed to load the current lead');
+      }
+    } finally {
+      if (requestId === detailRequestRef.current) setDetailLoading(false);
+    }
+  };
+
+  const openView = async (lead) => {
+    const requestId = ++detailRequestRef.current;
+    setDetailLoading(true);
+    setViewLead(lead);
+    try {
+      const { data } = await API.get(`/leads/${lead._id}`);
+      if (requestId !== detailRequestRef.current) return;
+      setViewLead(data);
+    } catch (err) {
+      if (requestId === detailRequestRef.current) {
+        setViewLead(null);
+        alert(err.response?.data?.message || 'Failed to load lead details');
+      }
+    } finally {
+      if (requestId === detailRequestRef.current) setDetailLoading(false);
+    }
+  };
+
+  const closeView = () => {
+    detailRequestRef.current += 1;
+    setViewLead(null);
+    setDetailLoading(false);
   };
 
   const closeModal = () => {
+    detailRequestRef.current += 1;
     setShowModal(false);
     setEditLead(null);
-    setForm(EMPTY_FORM);
+    setDetailLoading(false);
+    setForm(createEmptyForm());
     setSelectedDistrict('');
     setSelectedPlaceId('');
     setPlaces([]);
@@ -345,8 +418,20 @@ export default function AdminLeads() {
     try {
       const payload = { ...form };
       if (!payload.sportsPlaceName) payload.sportsPlaceName = payload.name;
-      if (!payload.assignedTo) delete payload.assignedTo;
+      payload.assignedTo = payload.assignedTo || null;
       if (!payload.followUpDate) delete payload.followUpDate;
+      if (payload.entryAt) {
+        const entryAt = new Date(payload.entryAt);
+        if (Number.isNaN(entryAt.getTime())) {
+          alert('Entry date/time is invalid.');
+          setSaving(false);
+          return;
+        }
+        payload.entryAt = entryAt.toISOString();
+      } else {
+        delete payload.entryAt;
+      }
+      delete payload.date;
 
       if (payload.status === 'Demo Online') {
         payload.leadType = 'Online';
@@ -406,17 +491,6 @@ export default function AdminLeads() {
     } catch (err) { alert(err.response?.data?.message || 'Failed'); }
   };
 
-  /* ── sync ────────────────────────────────────────────────── */
-  const handleSync = async () => {
-    if (!confirm('Sync with local Excel file on the server?')) return;
-    try {
-      const { data } = await API.post('/import/sync');
-      alert(`Sync Complete!\nCreated: ${data.created}\nUpdated: ${data.updated}\nTotal: ${data.total}`);
-      fetchLeads();
-      API.get('/leads/districts').then(r => setDistricts(r.data || [])).catch(() => {});
-    } catch { alert('Sync failed — check server console.'); }
-  };
-
   /* ── render ──────────────────────────────────────────────── */
   return (
     <Layout title="Lead Management">
@@ -445,13 +519,13 @@ export default function AdminLeads() {
           <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
           <input className="form-input" style={{ paddingLeft: 34 }} placeholder="Search name, district, phone, place…"
             value={search} onChange={e => setSearch(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchLeads(); } }} />
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applySearch(); } }} />
         </div>
-        <select className="form-input filter-select" value={filterDistrict} onChange={e => setFilterDistrict(e.target.value)}>
+        <select className="form-input filter-select" value={filterDistrict} onChange={e => { setFilterDistrict(e.target.value); setPage(1); }}>
           <option value="">All Districts</option>
           {districts.map(d => <option key={d} value={d}>{d}</option>)}
         </select>
-        <select className="form-input filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+        <select className="form-input filter-select" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }}>
           <option value="">All Status</option>
           {STATUS_LIST.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -459,7 +533,7 @@ export default function AdminLeads() {
            <span>{leads.length} of {totalLeads.toLocaleString('en-IN')}</span>
            {(search || filterStatus || filterDistrict) && (
               <button className="btn-secondary" style={{ padding: '6px 10px', fontSize: 11 }}
-                onClick={() => { setSearch(''); setFilterStatus(''); setFilterDistrict(''); setPage(1); }}>
+                onClick={() => { setSearch(''); setAppliedSearch(''); setFilterStatus(''); setFilterDistrict(''); setPage(1); }}>
                 <X size={12} /> Clear
               </button>
             )}
@@ -473,7 +547,7 @@ export default function AdminLeads() {
           const { bg, color } = STATUS_COLOR[s] || {};
           const isActive = filterStatus === s;
           return (
-            <button key={s} onClick={() => setFilterStatus(isActive ? '' : s)}
+            <button key={s} onClick={() => { setFilterStatus(isActive ? '' : s); setPage(1); }}
               style={{
                 whiteSpace: 'nowrap',
                 background: isActive ? bg : 'var(--bg-surface)',
@@ -490,11 +564,11 @@ export default function AdminLeads() {
       </div>
 
       {/* ── Table ── */}
-      <div className="glass table-wrapper" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto' }}>
+      <div className="glass table-wrapper leads-table-scroll" style={{ width: '100%', maxWidth: '100%' }}>
         {loading ? (
           <div style={{ padding: 60, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ minWidth: '100%' }}>
             {/* Mobile Card View */}
             <div className="leads-mobile-cards">
               {leads.map((lead) => {
@@ -517,6 +591,9 @@ export default function AdminLeads() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                       <Phone size={12} color="var(--primary)" />
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{lead.phone}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>
+                      <strong>Entry:</strong> {formatEntryDateTime(getEntryValue(lead))}
                     </div>
                     {lead.location?.address && (
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -542,13 +619,13 @@ export default function AdminLeads() {
                       <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{lead.assignedTo?.name || 'Unassigned'}</span>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <WhatsAppButton phone={lead.phone} name={lead.name} />
-                        <button onClick={() => setViewLead(lead)} style={{ background: 'rgba(56,189,248,0.15)', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: '#38bdf8', display: 'flex', alignItems: 'center' }}>
+                        <button type="button" title="View" onClick={() => openView(lead)} style={{ background: 'rgba(56,189,248,0.15)', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: '#38bdf8', display: 'flex', alignItems: 'center' }}>
                           <Eye size={13} />
                         </button>
-                        <button onClick={() => openEdit(lead)} style={{ background: 'rgba(99,102,241,0.15)', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: '#818cf8', display: 'flex', alignItems: 'center' }}>
+                        <button type="button" title="Edit" onClick={() => openEdit(lead)} style={{ background: 'rgba(99,102,241,0.15)', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: '#818cf8', display: 'flex', alignItems: 'center' }}>
                           <Edit2 size={13} />
                         </button>
-                        <button onClick={() => handleDelete(lead._id)} style={{ background: 'rgba(239,68,68,0.15)', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: '#f87171', display: 'flex', alignItems: 'center' }}>
+                        <button type="button" title="Delete" onClick={() => handleDelete(lead._id)} style={{ background: 'rgba(239,68,68,0.15)', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: '#f87171', display: 'flex', alignItems: 'center' }}>
                           <Trash2 size={13} />
                         </button>
                       </div>
@@ -558,12 +635,13 @@ export default function AdminLeads() {
               })}
             </div>
 
-            <table className="data-table leads-desktop-table" style={{ width: '100%', minWidth: 900 }}>
+            <table className="data-table leads-desktop-table" style={{ width: '100%', minWidth: 1080 }}>
   
               <thead>
                 <tr>
                   <th>R.No</th>
                   <th>Name / Place</th>
+                  <th>Entry Date/Time</th>
                   <th>District</th>
                   <th>Category</th>
                   <th>Contact</th>
@@ -579,7 +657,7 @@ export default function AdminLeads() {
               </thead>
               <tbody>
                 {leads.length === 0 ? (
-                  <tr><td colSpan={12} style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>
+                  <tr><td colSpan={13} style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>
                     <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
                     No leads found. Click <strong style={{ color: '#adff2f' }}>+ Add Lead</strong> to create one.
                   </td></tr>
@@ -599,9 +677,9 @@ export default function AdminLeads() {
                         }}
                       >
                         {lead.sportsPlaceName || lead.name}
-                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, fontWeight: 500, whiteSpace: 'nowrap' }}>
-                          {lead.createdAt ? new Date(lead.createdAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
-                        </div>
+                      </td>
+                      <td style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                        {formatEntryDateTime(getEntryValue(lead))}
                       </td>
                       <td>
                         {lead.district ? (
@@ -679,7 +757,7 @@ export default function AdminLeads() {
                       <td>
                         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                           <WhatsAppButton phone={lead.phone} name={lead.name} />
-                          <button onClick={() => setViewLead(lead)}
+                          <button type="button" onClick={() => openView(lead)}
                             title="View"
                             style={{ background: 'rgba(56,189,248,0.15)', border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: '#38bdf8', display:'flex', alignItems:'center' }}>
                             <Eye size={13} />
@@ -731,13 +809,16 @@ export default function AdminLeads() {
 
       {/* ── VIEW LEAD MODAL ── */}
       {viewLead && (
-        <div className="modal-overlay" onClick={() => setViewLead(null)}>
+        <div className="modal-overlay" onClick={closeView}>
           <div className="modal-window" style={{ maxWidth: 600, padding: '28px 32px', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h3 style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-primary)' }}>Lead Details</h3>
-              <button onClick={() => setViewLead(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}><X size={20} /></button>
+              <button type="button" onClick={closeView} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}><X size={20} /></button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {detailLoading ? (
+              <div style={{ padding: 60, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Name / Place:</span>
                 <span style={{ fontWeight: 600 }}>{viewLead.sportsPlaceName || viewLead.name}</span>
@@ -745,6 +826,10 @@ export default function AdminLeads() {
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>R.No:</span>
                 <span style={{ fontWeight: 600 }}>{viewLead.sno || '—'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Entry Date/Time:</span>
+                <span style={{ fontWeight: 600 }}>{formatEntryDateTime(getEntryValue(viewLead))}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Contact:</span>
@@ -787,6 +872,7 @@ export default function AdminLeads() {
                 <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{viewLead.notes || '—'}</span>
               </div>
             </div>
+            )}
           </div>
         </div>
       )}
@@ -821,14 +907,14 @@ export default function AdminLeads() {
                 {editLead ? '✏️ Edit Lead' : '➕ Add New Lead'}
               </h3>
               <div style={{ display: 'flex', gap: 8, flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-                <button type="submit" form="lead-form" disabled={saving}
+                <button type="submit" form="lead-form" disabled={saving || detailLoading}
                   style={{
                     background: 'var(--primary)', color: '#000', border: 'none',
                     borderRadius: 10, padding: '8px 20px', fontWeight: 700,
                     fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer',
                     opacity: saving ? 0.7 : 1, whiteSpace: 'nowrap',
                   }}>
-                  {saving ? 'Saving…' : editLead ? '✓ Update' : '✓ Create'}
+                  {detailLoading ? 'Loading…' : saving ? 'Saving…' : editLead ? '✓ Update' : '✓ Create'}
                 </button>
                 <button type="button" onClick={closeModal}
                   style={{
@@ -838,7 +924,7 @@ export default function AdminLeads() {
                   }}>
                   Cancel
                 </button>
-                <button onClick={closeModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, display: 'flex', alignItems: 'center' }}>
+                <button type="button" onClick={closeModal} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 4, display: 'flex', alignItems: 'center' }}>
                   <X size={18} />
                 </button>
               </div>
@@ -850,6 +936,7 @@ export default function AdminLeads() {
               onSubmit={handleSubmit}
               style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 'clamp(16px, 3vw, 24px)' }}
             >
+              <fieldset disabled={detailLoading} style={{ border: 0, padding: 0, margin: 0, minWidth: 0, opacity: detailLoading ? 0.55 : 1 }}>
               {/* Search from database */}
               {!editLead && (
                 <div style={{ marginBottom: 16 }}>
@@ -1000,9 +1087,9 @@ export default function AdminLeads() {
                   </select>
                 </div>
                 <div>
-                  <label className="form-label">Date</label>
-                  <input className="form-input" type="datetime-local" value={form.date}
-                    onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                  <label className="form-label">Entry Date/Time</label>
+                  <input className="form-input" type="datetime-local" value={form.entryAt}
+                    onChange={e => setForm(f => ({ ...f, entryAt: e.target.value }))} />
                 </div>
               </div>
 
@@ -1024,6 +1111,7 @@ export default function AdminLeads() {
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                   style={{ resize: 'vertical', minHeight: 72 }} />
               </div>
+              </fieldset>
             </form>
           </div>
         </div>

@@ -60,7 +60,7 @@ import 'leaflet/dist/leaflet.css';
 import { 
   Search, Phone, Navigation, MapPin, Filter, X, Target, 
   CheckCircle2, Star, RefreshCw, Map as MapIcon,
-  LayoutGrid, Plus, Loader2, Menu, LogOut, Zap
+  LayoutGrid, Plus, Loader2, Menu, LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import API from '../api/axios';
@@ -298,15 +298,43 @@ export default function MapModule({ toggleSidebar }) {
     sno: '', name: '', phone: '', email: '', district: '', category: '',
     contactAvailability: 'Yes', status: 'New Lead', leadType: 'Offline',
     assignedTo: '', followUpDate: '', source: 'field',
-    date: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
+    entryAt: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
     location: { address: '' }, clientRequirement: '', notes: ''
   };
   const [form, setForm] = useState(EMPTY_FORM);
   const [visibleCount, setVisibleCount] = useState(50);
 
+  const updateSearchTerm = (value) => {
+    setVisibleCount(50);
+    setSearchTerm(value);
+  };
+
+  const updateSelectedDistrict = (value) => {
+    setVisibleCount(50);
+    setSelectedDistrict(value);
+  };
+
+  const updateSelectedCategory = (value) => {
+    setVisibleCount(50);
+    setSelectedCategory(value);
+  };
+
+  const updateVisitedOnly = (value) => {
+    setVisibleCount(50);
+    setShowVisitedOnly(value);
+  };
+
+  const clearFilters = () => {
+    setVisibleCount(50);
+    setSelectedDistrict('');
+    setSelectedCategory('');
+    setSearchTerm('');
+    setShowVisitedOnly(false);
+  };
+
   const toggleComplete = async (id) => {
     try {
-      const res = await API.post(`/leads/locations/${id}/visit`);
+      await API.post(`/leads/locations/${id}/visit`);
       setItems(prev => prev.map(it => it._id === id ? { 
         ...it, 
         isVisited: true, 
@@ -373,11 +401,6 @@ export default function MapModule({ toggleSidebar }) {
     );
   }), [items, selectedDistrict, selectedCategory, searchTerm, showVisitedOnly, completedItems]);
 
-  // Reset visible count when filters change
-  useEffect(() => {
-    setVisibleCount(50);
-  }, [selectedDistrict, selectedCategory, searchTerm, showVisitedOnly]);
-
   const handleSync = async () => {
     try {
       setLoading(true);
@@ -426,7 +449,7 @@ export default function MapModule({ toggleSidebar }) {
       assignedTo: '',
       followUpDate: '',
       source: 'field',
-      date: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
+      entryAt: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
       location: { address: item.location?.address || item.address || item.name || '' },
       clientRequirement: '',
       notes: ''
@@ -446,6 +469,7 @@ export default function MapModule({ toggleSidebar }) {
         sportsPlaceId: leadTarget._id,
         sportsPlaceName: form.name,
       };
+      if (payload.entryAt) payload.entryAt = new Date(payload.entryAt).toISOString();
       if (payload.location) {
         payload.location.lat = leadTarget.location?.lat;
         payload.location.lng = leadTarget.location?.lng;
@@ -460,7 +484,8 @@ export default function MapModule({ toggleSidebar }) {
           _id: res.data._id,
           status: res.data.status,
           contactPerson: res.data.contactPerson,
-          createdAt: res.data.createdAt
+          createdAt: res.data.createdAt,
+          entryAt: res.data.entryAt || res.data.createdAt
         }
       } : it));
 
@@ -521,7 +546,7 @@ export default function MapModule({ toggleSidebar }) {
 
         {/* Visited filter toggle */}
         <button
-          onClick={() => setShowVisitedOnly(v => !v)}
+          onClick={() => updateVisitedOnly(!showVisitedOnly)}
           className="flex items-center gap-1 h-7 rounded-lg font-bold transition-all shrink-0"
           style={{
             background: showVisitedOnly ? '#ecfdf5' : '#f8fafc',
@@ -631,11 +656,11 @@ export default function MapModule({ toggleSidebar }) {
                 type="text"
                 placeholder="Search name, address, district..."
                 value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
+                onChange={e => updateSearchTerm(e.target.value)}
                 style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 12, fontWeight: 500, color: '#f1f5f9', minWidth: 0 }}
               />
               {searchTerm && (
-                <button onClick={() => setSearchTerm('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', padding: 0 }}>
+                <button onClick={() => updateSearchTerm('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', padding: 0 }}>
                   <X size={13} />
                 </button>
               )}
@@ -647,7 +672,7 @@ export default function MapModule({ toggleSidebar }) {
                 <MapPin size={12} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#60a5fa', pointerEvents: 'none', zIndex: 1 }} />
                 <select
                   value={selectedDistrict}
-                  onChange={e => setSelectedDistrict(e.target.value)}
+                  onChange={e => updateSelectedDistrict(e.target.value)}
                   style={{ width: '100%', height: 34, background: 'rgba(255,255,255,0.07)', border: `1px solid ${selectedDistrict ? '#3b82f6' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, paddingLeft: 26, paddingRight: 8, fontSize: 11, fontWeight: 700, color: selectedDistrict ? '#93c5fd' : '#94a3b8', outline: 'none', appearance: 'none', cursor: 'pointer' }}
                 >
                   <option value="">All Districts</option>
@@ -658,7 +683,7 @@ export default function MapModule({ toggleSidebar }) {
                 <Filter size={11} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#a78bfa', pointerEvents: 'none', zIndex: 1 }} />
                 <select
                   value={selectedCategory}
-                  onChange={e => setSelectedCategory(e.target.value)}
+                  onChange={e => updateSelectedCategory(e.target.value)}
                   style={{ width: '100%', height: 34, background: 'rgba(255,255,255,0.07)', border: `1px solid ${selectedCategory ? '#8b5cf6' : 'rgba(255,255,255,0.1)'}`, borderRadius: 8, paddingLeft: 26, paddingRight: 8, fontSize: 11, fontWeight: 700, color: selectedCategory ? '#c4b5fd' : '#94a3b8', outline: 'none', appearance: 'none', cursor: 'pointer' }}
                 >
                   <option value="">All Categories</option>
@@ -678,7 +703,7 @@ export default function MapModule({ toggleSidebar }) {
               </div>
               {(selectedDistrict || selectedCategory || searchTerm || showVisitedOnly) && (
                 <button
-                  onClick={() => { setSelectedDistrict(''); setSelectedCategory(''); setSearchTerm(''); setShowVisitedOnly(false); }}
+                  onClick={clearFilters}
                   style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, padding: '3px 10px', fontSize: 10, fontWeight: 700, color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                 >
                   <X size={9} strokeWidth={3} /> Reset
@@ -994,9 +1019,9 @@ export default function MapModule({ toggleSidebar }) {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:5 }}>Date</label>
+                  <label style={{ fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:5 }}>Entry Date/Time</label>
                   <input style={{ width:'100%', height:40, border:'1.5px solid #e2e8f0', borderRadius:10, padding:'0 12px', fontSize:13, fontWeight:600, color:'#1e293b', outline:'none', boxSizing:'border-box' }} type="datetime-local"
-                    value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+                    value={form.entryAt} onChange={e => setForm(f => ({ ...f, entryAt: e.target.value }))} />
                 </div>
               </div>
 

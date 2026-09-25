@@ -1,7 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const {
-  getLeads, createLead, updateLead, deleteLead, deleteAllLeads,
+  getLeads, getLeadById, createLead, updateLead, deleteLead, deleteAllLeads,
   convertLead, getLeadStats,
   getDistricts, getPlacesByDistrict, getAllLocations, markLocationVisited,
   bulkAssign, getPlaceBySno,
@@ -19,6 +19,7 @@ router.post('/bulk-assign',       protect, adminOnly,    bulkAssign);
 router.delete('/delete-all',      protect, adminOnly,    deleteAllLeads);
 
 // CRUD
+router.get('/:id',     protect, agentOrAdmin, getLeadById);
 router.get('/',        protect, agentOrAdmin, getLeads);
 router.post('/',       protect, agentOrAdmin, createLead);
 router.put('/:id',     protect, agentOrAdmin, updateLead);

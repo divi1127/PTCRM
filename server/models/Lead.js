@@ -20,12 +20,18 @@ const leadSchema = new mongoose.Schema({
 
   source: {
     type: String,
-    enum: ['field', 'web', 'social', 'referral', 'excel_import'],
+    enum: ['field', 'web', 'social', 'referral', 'excel_import', 'online', 'import'],
     default: 'field',
   },
   status: {
     type: String,
-    enum: ['New Lead', 'Contacted', 'Interested', 'Follow Up', 'Follow-up', 'Demo Scheduled', 'Demo Online', 'Demo Offline', 'Negotiation', 'Conversion', 'Converted', 'Not Interested', 'Wrong Number', 'Lost', 'Closed', 'New', 'Demo', 'Rejected'],
+    enum: [
+      'New Lead', 'Contacted', 'Interested', 'Follow Up', 'Follow-up', 
+      'Demo Scheduled', 'Demo Online', 'Demo Offline', 'Negotiation', 
+      'Conversion', 'Converted', 'Not Interested', 'Wrong Number', 'Lost', 
+      'Closed', 'New', 'Demo', 'Rejected', 'Not Attend', 
+      'Already have Web/App', 'Already added in Playspot'
+    ],
     default: 'New Lead',
   },
   contactAvailability: { type: String, enum: ['Yes', 'No'], default: 'Yes' },

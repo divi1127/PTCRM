@@ -66,6 +66,7 @@ const createLead = async (req, res) => {
     const body = { ...req.body };
     if (!body.sportsPlaceName) body.sportsPlaceName = body.name;
     if (!body.assignedTo) body.assignedTo = req.user._id;
+    if (body.date) body.createdAt = new Date(body.date);
     body.createdBy = req.user._id;
 
     // Auto-assign a unique S.No (1, 2, 3 ... n) for every new lead
@@ -117,6 +118,7 @@ const updateLead = async (req, res) => {
     const body = { ...req.body };
     const prevLead = await Lead.findById(req.params.id).select('assignedTo').lean();
     if (body.assignedTo === '') body.assignedTo = null;
+    if (body.date) body.createdAt = new Date(body.date);
 
     const lead = await Lead.findByIdAndUpdate(
       req.params.id, body, { new: true, runValidators: true }

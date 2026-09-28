@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
 import {
@@ -13,6 +14,7 @@ import {
 const COLORS = ['#adff2f', '#10b981', '#fbbf24', '#f87171', '#818cf8'];
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [kpis, setKpis] = useState(null);
   const [revenue, setRevenue] = useState(null);
   const [leadStats, setLeadStats] = useState(null);
@@ -52,7 +54,9 @@ export default function AdminDashboard() {
     { label: 'Revenue (INR)', value: `₹${(kpis.totalRevenue || 0).toLocaleString('en-IN')}`, icon: DollarSign, color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', delta: 'Achieved' },
     { label: 'Upcoming Meetings', value: kpis.upcomingMeetings || 0, icon: Calendar, color: '#ec4899', bg: 'rgba(236,72,153,0.12)', delta: 'Scheduled' },
     { label: 'Pending Payments', value: `₹${(kpis.pendingPayments || 0).toLocaleString('en-IN')}`, icon: Zap, color: '#ef4444', bg: 'rgba(239,68,68,0.12)', delta: 'Action Needed' },
-    { label: 'Follow-up Reminders', value: kpis.upcomingFollowUps || 0, icon: Clock, color: '#06b6d4', bg: 'rgba(6,182,212,0.12)', delta: 'Pending' },
+    { label: 'Today Leads', value: kpis.todayLeadsCount || 0, icon: Target, color: '#10b981', bg: 'rgba(16,185,129,0.12)', delta: 'Today', onClick: () => navigate('/admin/leads?timeFilter=today_leads') },
+    { label: 'Today Follow-ups', value: kpis.todayFollowUps || 0, icon: Clock, color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', delta: 'Action Needed', onClick: () => navigate('/admin/leads?timeFilter=today_followup') },
+    { label: 'Tomorrow Follow-ups', value: kpis.tomorrowFollowUps || 0, icon: Clock, color: '#06b6d4', bg: 'rgba(6,182,212,0.12)', delta: 'Upcoming', onClick: () => navigate('/admin/leads?timeFilter=tomorrow_followup') },
   ] : [];
 
   const monthlyData = revenue?.monthlyRevenue?.map(m => ({
@@ -73,7 +77,7 @@ export default function AdminDashboard() {
       {/* KPI Cards */}
       <div className="kpi-grid" style={{ marginBottom: 28 }}>
         {kpiCards.map((card, i) => (
-          <div key={i} className="kpi-card glass-hover" style={{ animationDelay: `${i * 0.05}s` }}>
+          <div key={i} className="kpi-card glass-hover" style={{ animationDelay: `${i * 0.05}s`, cursor: card.onClick ? 'pointer' : 'default' }} onClick={card.onClick}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>{card.label}</p>

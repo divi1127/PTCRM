@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import API from '../../api/axios';
 import {
@@ -138,6 +139,9 @@ export default function AdminLeads() {
   const [places, setPlaces]       = useState([]);
   const [loading, setLoading]     = useState(true);
 
+  const [searchParams] = useSearchParams();
+  const timeFilter = searchParams.get('timeFilter');
+
   /* filters */
   const [search, setSearch]             = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
@@ -185,6 +189,8 @@ export default function AdminLeads() {
       }
       if (filterDistrict) params.district = filterDistrict;
       if (appliedSearch) params.search = appliedSearch;
+      if (timeFilter) params.timeFilter = timeFilter;
+      
       const { data } = await API.get('/leads', { params });
       if (requestId !== listRequestRef.current) return;
       const arr = Array.isArray(data) ? data : (data.leads || []);
@@ -195,7 +201,7 @@ export default function AdminLeads() {
     } finally {
       if (requestId === listRequestRef.current) setLoading(false);
     }
-  }, [filterStatus, filterDistrict, appliedSearch, page, limit]);
+  }, [filterStatus, filterDistrict, appliedSearch, page, limit, timeFilter]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => fetchLeads(page), 0);

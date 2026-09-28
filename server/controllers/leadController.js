@@ -39,6 +39,7 @@ const getLeads = async (req, res) => {
   try {
     const {
       status, district, category, assignedTo, leadType,
+      timeFilter,
       search, page = 1, limit = 100
     } = req.query;
 
@@ -53,6 +54,24 @@ const getLeads = async (req, res) => {
     if (district)  filter.district = district;
     if (category)  filter.category = category;
     if (assignedTo && req.user.role === 'admin') filter.assignedTo = assignedTo;
+
+    if (timeFilter) {
+      const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+      const todayEnd = new Date(todayStart); todayEnd.setDate(todayEnd.getDate() + 1);
+      
+      const tomorrowStart = new Date(todayEnd);
+      const tomorrowEnd = new Date(tomorrowStart); tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+      
+      if (timeFilter === 'today_leads') {
+         filter.createdAt = { $gte: todayStart, $lt: todayEnd };
+      } else if (timeFilter === 'today_followup') {
+         filter.followUpDate = { $gte: todayStart, $lt: todayEnd };
+         if (!filter.status) filter.status = { $ne: 'Closed' };
+      } else if (timeFilter === 'tomorrow_followup') {
+         filter.followUpDate = { $gte: tomorrowStart, $lt: tomorrowEnd };
+         if (!filter.status) filter.status = { $ne: 'Closed' };
+      }
+    }
 
     if (search) {
       const re = { $regex: search, $options: 'i' };

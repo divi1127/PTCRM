@@ -102,6 +102,11 @@ const getDashboardKPIs = async (req, res) => {
     const totalEmployees = await User.countDocuments({ role: 'employee' });
     
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const todayEnd = new Date(todayStart); todayEnd.setDate(todayEnd.getDate() + 1);
+    
+    const tomorrowStart = new Date(todayEnd);
+    const tomorrowEnd = new Date(tomorrowStart); tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+
     const presentToday = await Attendance.countDocuments({ date: { $gte: todayStart }, status: 'Present' });
     const todayAttendance = `${presentToday}/${totalEmployees}`;
 
@@ -117,6 +122,10 @@ const getDashboardKPIs = async (req, res) => {
     const upcomingMeetings = await Meeting.countDocuments({ scheduledAt: { $gte: new Date() }, status: 'Scheduled' });
     const upcomingFollowUps = await Lead.countDocuments({ followUpDate: { $gte: new Date() }, status: { $ne: 'Closed' } });
 
+    const todayLeadsCount = await Lead.countDocuments({ createdAt: { $gte: todayStart, $lt: todayEnd } });
+    const todayFollowUps = await Lead.countDocuments({ followUpDate: { $gte: todayStart, $lt: todayEnd }, status: { $ne: 'Closed' } });
+    const tomorrowFollowUps = await Lead.countDocuments({ followUpDate: { $gte: tomorrowStart, $lt: tomorrowEnd }, status: { $ne: 'Closed' } });
+
     res.json({
       totalLeads,
       totalCustomers,
@@ -126,6 +135,9 @@ const getDashboardKPIs = async (req, res) => {
       todayAttendance,
       upcomingMeetings,
       upcomingFollowUps,
+      todayLeadsCount,
+      todayFollowUps,
+      tomorrowFollowUps,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
